@@ -20,10 +20,8 @@ extension ByteBuffer {
     ///
     /// - parameters:
     ///     - integer: The integer to serialize.
-    /// - returns: The number of bytes written.
-    @discardableResult
     @inlinable
-    public mutating func writeIntegerAsASCII<T: FixedWidthInteger>(_ integer: T) -> Int {
+    public mutating func writeIntegerAsASCII<T: FixedWidthInteger>(_ integer: T) {
         let asciiZero = UInt8(ascii: "0")
         var value = integer
         var buffer: ContiguousArray<UInt8> = []
@@ -33,9 +31,7 @@ extension ByteBuffer {
             buffer.insert(asciiZero + digit, at: 0)
             value /= 10
         } while value > 0
-        
-        let bytesWritten = buffer.count
+
         self.writeBytes(buffer)
-        return bytesWritten
     }
 }
