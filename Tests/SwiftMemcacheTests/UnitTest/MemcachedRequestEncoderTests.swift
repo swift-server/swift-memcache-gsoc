@@ -26,24 +26,21 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         super.setUp()
         encoder = MemcachedRequestEncoder()
     }
-    
-    // set request:
-    //  ms foo 2\r\n
-    //  hi\r\n
+
     func testEncodeSetRequest() {
+        // Prepare a MemcachedRequest
         var buffer = ByteBufferAllocator().buffer(capacity: 2)
         buffer.writeString("hi")
-
         let request = MemcachedRequest.set(key: "foo", value: buffer)
-        
+
+        // pass our request through the encoder
         var outBuffer = ByteBufferAllocator().buffer(capacity: 0)
-        
         do {
             try encoder.encode(data: request, out: &outBuffer)
         } catch {
             XCTFail("Encoding failed with error: \(error)")
         }
-
+        
         let expectedEncodedData = "ms foo 2\r\nhi\r\n"
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
     }
