@@ -3,7 +3,12 @@ version: "3.9"
 services:
   # Swift on Server CI
   # e.g. docker-compose -f docker/docker-compose.yaml -f docker/docker-compose.2204.57.yaml run test
-
+  
+  memcached:
+    image: memcached:latest
+    ports:
+        - "11211:11211"
+  
   runtime-setup:
     image: swift-memcache-gsoc:default
     build:
@@ -24,7 +29,9 @@ services:
 
   test:
     <<: *common
-    depends_on: [runtime-setup]
+    depends_on:
+        - runtime-setup
+        - memcached
     command: /bin/bash -xcl "swift $${SWIFT_TEST_VERB-test} $${WARN_AS_ERROR_ARG-} $${SANITIZER_ARG-} $${IMPORT_CHECK_ARG-}"
 
   # util

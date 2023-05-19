@@ -11,3 +11,16 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
+
+import NIOCore
+
+internal enum MemcachedRequest {
+    case set(key: String, value: ByteBuffer)
+
+    var command: String {
+        switch self {
+        case .set:
+            return "ms"
+        }
+    }
+}
