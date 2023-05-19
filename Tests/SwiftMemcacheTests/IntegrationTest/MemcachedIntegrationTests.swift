@@ -46,8 +46,8 @@ final class MemcachedRequestEncoderTest: XCTestCase {
             
             // Prepare a MemcachedRequest
             var buffer = ByteBufferAllocator().buffer(capacity: 3)
-            buffer.writeString("i")
-            let request = MemcachedRequest.set(key: "boo", value: buffer)
+            buffer.writeString("hi")
+            let request = MemcachedRequest.set(key: "foo", value: buffer)
 
             // Write the request to the connection and wait for the result
             connection.writeAndFlush(request).whenComplete { result in
