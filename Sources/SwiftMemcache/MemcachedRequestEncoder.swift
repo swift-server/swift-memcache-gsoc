@@ -14,31 +14,32 @@
 
 
 import NIOCore
-import NIO
 import NIOPosix
 
-internal struct MemcachedRequestEncoder: MessageToByteEncoder {
-    public typealias OutboundIn = MemcachedRequest
+struct MemcachedRequestEncoder: MessageToByteEncoder {
+    typealias OutboundIn = MemcachedRequest
 
-    public func encode(data: MemcachedRequest, out: inout ByteBuffer) throws {
+    func encode(data: MemcachedRequest, out: inout ByteBuffer) throws {
         switch data {
-        case .set(let key, var value):
+        case .set(var command):
             // write command and key
-            out.writeString(data.command)
-            out.writeStaticString(" ")
-            out.writeString(key)
-            out.writeStaticString(" ")
+            out.writeBytes(data.command.utf8)
+            out.writeInteger(UInt8.whitespace)
+            out.writeBytes(command.key.utf8)
+            out.writeInteger(UInt8.whitespace)
 
             // write value length
-            let length = value.readableBytes
+            let length = command.value.readableBytes
             out.writeIntegerAsASCII(length)
 
             // write separator
-            out.writeStaticString("\r\n")
+            out.writeInteger(UInt8.carriageReturn)
+            out.writeInteger(UInt8.newline)
 
             // write value and end line
-            out.writeBuffer(&value)
-            out.writeStaticString("\r\n")
+            out.writeBuffer(&command.value)
+            out.writeInteger(UInt8.carriageReturn)
+            out.writeInteger(UInt8.newline)
         }
     }
 }

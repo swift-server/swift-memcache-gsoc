@@ -12,19 +12,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-import NIOCore
 
-enum MemcachedRequest {
-    struct SetCommand {
-        let key: String
-        var value: ByteBuffer
-    }
-    case set(SetCommand)
-
-    var command: String {
-        switch self {
-        case .set:
-            return "ms"
-        }
-    }
+extension UInt8 {
+    static let whitespace: UInt8 = UInt8(ascii: " ")
+    static let newline = UInt8(ascii: "\n")
+    static let carriageReturn = UInt8(ascii: "\r")
 }

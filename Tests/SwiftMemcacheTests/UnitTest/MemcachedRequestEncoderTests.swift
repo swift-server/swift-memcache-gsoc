@@ -15,7 +15,6 @@
 
 import XCTest
 import NIOCore
-import NIO
 @testable import SwiftMemcache
 
 final class MemcachedRequestEncoderTests: XCTestCase {
@@ -31,7 +30,8 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         // Prepare a MemcachedRequest
         var buffer = ByteBufferAllocator().buffer(capacity: 2)
         buffer.writeString("hi")
-        let request = MemcachedRequest.set(key: "foo", value: buffer)
+        let command = MemcachedRequest.SetCommand(key: "foo", value: buffer)
+        let request = MemcachedRequest.set(command)
 
         // pass our request through the encoder
         var outBuffer = ByteBufferAllocator().buffer(capacity: 0)

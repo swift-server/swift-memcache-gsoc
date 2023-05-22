@@ -14,12 +14,11 @@
 
 
 import XCTest
-import NIO
 import NIOCore
-
+import NIOPosix
 @testable import SwiftMemcache
 
-final class MemcachedRequestEncoderTest: XCTestCase {
+final class MemcachedIntegrationTest: XCTestCase {
     
     var channel: ClientBootstrap!
     var group: EventLoopGroup!
@@ -47,7 +46,8 @@ final class MemcachedRequestEncoderTest: XCTestCase {
             // Prepare a MemcachedRequest
             var buffer = ByteBufferAllocator().buffer(capacity: 3)
             buffer.writeString("hi")
-            let request = MemcachedRequest.set(key: "foo", value: buffer)
+            let command = MemcachedRequest.SetCommand(key: "foo", value: buffer)
+            let request = MemcachedRequest.set(command)
 
             // Write the request to the connection and wait for the result
             connection.writeAndFlush(request).whenComplete { result in
