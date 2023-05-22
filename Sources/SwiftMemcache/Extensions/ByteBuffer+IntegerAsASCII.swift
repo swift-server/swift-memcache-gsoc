@@ -21,7 +21,7 @@ extension ByteBuffer {
     /// - parameters:
     ///     - integer: The integer to serialize.
     @inlinable
-    public mutating func writeIntegerAsASCII<T: FixedWidthInteger>(_ integer: T) {
+    mutating func writeIntegerAsASCII<T: FixedWidthInteger>(_ integer: T) {
         let string = String(integer)
         self.writeString(string)
     }
