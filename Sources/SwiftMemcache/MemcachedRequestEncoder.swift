@@ -22,8 +22,11 @@ struct MemcachedRequestEncoder: MessageToByteEncoder {
     func encode(data: MemcachedRequest, out: inout ByteBuffer) throws {
         switch data {
         case .set(var command):
+            precondition(!command.key.isEmpty, "Key must not be empty")
+            
             // write command and key
-            out.writeBytes(data.command.utf8)
+            out.writeInteger(UInt8.meta)
+            out.writeInteger(UInt8.set)
             out.writeInteger(UInt8.whitespace)
             out.writeBytes(command.key.utf8)
             out.writeInteger(UInt8.whitespace)

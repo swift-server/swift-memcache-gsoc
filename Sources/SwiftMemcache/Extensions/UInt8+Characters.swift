@@ -14,7 +14,9 @@
 
 
 extension UInt8 {
-    static let whitespace: UInt8 = UInt8(ascii: " ")
-    static let newline = UInt8(ascii: "\n")
-    static let carriageReturn = UInt8(ascii: "\r")
+    static var whitespace: UInt8 = UInt8(ascii: " ")
+    static var newline: UInt8 = UInt8(ascii: "\n")
+    static var carriageReturn: UInt8 = UInt8(ascii: "\r")
+    static var meta: UInt8 = UInt8(ascii: "m")
+    static var set: UInt8 = UInt8(ascii: "s")
 }

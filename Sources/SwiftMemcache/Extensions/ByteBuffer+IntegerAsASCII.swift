@@ -22,16 +22,7 @@ extension ByteBuffer {
     ///     - integer: The integer to serialize.
     @inlinable
     public mutating func writeIntegerAsASCII<T: FixedWidthInteger>(_ integer: T) {
-        let asciiZero = UInt8(ascii: "0")
-        var value = integer
-        var buffer: ContiguousArray<UInt8> = []
-        
-        repeat {
-            let digit = UInt8(value % 10)
-            buffer.insert(asciiZero + digit, at: 0)
-            value /= 10
-        } while value > 0
-
-        self.writeBytes(buffer)
+        let string = String(integer)
+        self.writeString(string)
     }
 }

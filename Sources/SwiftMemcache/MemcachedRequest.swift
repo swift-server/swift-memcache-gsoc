@@ -20,11 +20,4 @@ enum MemcachedRequest {
         var value: ByteBuffer
     }
     case set(SetCommand)
-
-    var command: String {
-        switch self {
-        case .set:
-            return "ms"
-        }
-    }
 }
