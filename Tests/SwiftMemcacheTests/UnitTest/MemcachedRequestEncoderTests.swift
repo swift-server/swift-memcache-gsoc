@@ -12,18 +12,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-
-import XCTest
 import NIOCore
 @testable import SwiftMemcache
+import XCTest
 
 final class MemcachedRequestEncoderTests: XCTestCase {
-    
     var encoder: MemcachedRequestEncoder!
 
     override func setUp() {
         super.setUp()
-        encoder = MemcachedRequestEncoder()
+        self.encoder = MemcachedRequestEncoder()
     }
 
     func testEncodeSetRequest() {
@@ -36,11 +34,11 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         // pass our request through the encoder
         var outBuffer = ByteBufferAllocator().buffer(capacity: 0)
         do {
-            try encoder.encode(data: request, out: &outBuffer)
+            try self.encoder.encode(data: request, out: &outBuffer)
         } catch {
             XCTFail("Encoding failed with error: \(error)")
         }
-        
+
         let expectedEncodedData = "ms foo 2\r\nhi\r\n"
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
     }

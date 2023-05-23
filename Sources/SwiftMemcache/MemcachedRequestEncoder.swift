@@ -12,7 +12,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-
 import NIOCore
 import NIOPosix
 
@@ -23,7 +22,7 @@ struct MemcachedRequestEncoder: MessageToByteEncoder {
         switch data {
         case .set(var command):
             precondition(!command.key.isEmpty, "Key must not be empty")
-            
+
             // write command and key
             out.writeInteger(UInt8.m)
             out.writeInteger(UInt8.s)

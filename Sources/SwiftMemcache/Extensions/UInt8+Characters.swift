@@ -12,11 +12,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-
 extension UInt8 {
-    static var whitespace: UInt8 = UInt8(ascii: " ")
-    static var newline: UInt8 = UInt8(ascii: "\n")
-    static var carriageReturn: UInt8 = UInt8(ascii: "\r")
-    static var m: UInt8 = UInt8(ascii: "m")
-    static var s: UInt8 = UInt8(ascii: "s")
+    static var whitespace: UInt8 = .init(ascii: " ")
+    static var newline: UInt8 = .init(ascii: "\n")
+    static var carriageReturn: UInt8 = .init(ascii: "\r")
+    static var m: UInt8 = .init(ascii: "m")
+    static var s: UInt8 = .init(ascii: "s")
 }

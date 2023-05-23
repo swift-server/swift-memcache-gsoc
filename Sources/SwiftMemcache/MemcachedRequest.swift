@@ -19,5 +19,6 @@ enum MemcachedRequest {
         let key: String
         var value: ByteBuffer
     }
+
     case set(SetCommand)
 }

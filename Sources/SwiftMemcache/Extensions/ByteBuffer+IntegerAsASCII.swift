@@ -12,7 +12,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-
 import NIOCore
 
 extension ByteBuffer {
@@ -21,7 +20,7 @@ extension ByteBuffer {
     /// - parameters:
     ///     - integer: The integer to serialize.
     @inlinable
-    mutating func writeIntegerAsASCII<T: FixedWidthInteger>(_ integer: T) {
+    mutating func writeIntegerAsASCII(_ integer: some FixedWidthInteger) {
         let string = String(integer)
         self.writeString(string)
     }

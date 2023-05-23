@@ -12,37 +12,35 @@
 //
 //===----------------------------------------------------------------------===//
 
-
-import XCTest
 import NIOCore
 import NIOPosix
 @testable import SwiftMemcache
+import XCTest
 
 final class MemcachedIntegrationTest: XCTestCase {
-    
     var channel: ClientBootstrap!
     var group: EventLoopGroup!
-    
+
     override func setUp() {
         super.setUp()
-        group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        channel = ClientBootstrap(group: group)
+        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        self.channel = ClientBootstrap(group: self.group)
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelInitializer { channel in
                 channel.pipeline.addHandler(MessageToByteHandler(MemcachedRequestEncoder()))
-        }
+            }
     }
 
     override func tearDown() {
-        XCTAssertNoThrow(try group.syncShutdownGracefully())
+        XCTAssertNoThrow(try self.group.syncShutdownGracefully())
         super.tearDown()
     }
-    
+
     func testConnectionToMemcachedServer() throws {
         do {
             let connection = try channel.connect(host: "memcached", port: 11211).wait()
             XCTAssertNotNil(connection)
-            
+
             // Prepare a MemcachedRequest
             var buffer = ByteBufferAllocator().buffer(capacity: 3)
             buffer.writeString("hi")
@@ -52,7 +50,7 @@ final class MemcachedIntegrationTest: XCTestCase {
             // Write the request to the connection and wait for the result
             connection.writeAndFlush(request).whenComplete { result in
                 switch result {
-                case .success(_):
+                case .success:
                     print("Request successfully sent to the server.")
                 case .failure(let error):
                     XCTFail("Failed to send request: \(error)")
