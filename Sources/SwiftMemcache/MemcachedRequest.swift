@@ -11,3 +11,14 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
+
+import NIOCore
+
+enum MemcachedRequest {
+    struct SetCommand {
+        let key: String
+        var value: ByteBuffer
+    }
+
+    case set(SetCommand)
+}

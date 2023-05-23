@@ -11,3 +11,17 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
+
+import NIOCore
+
+extension ByteBuffer {
+    /// Write `integer` into this `ByteBuffer` as ASCII digits, without leading zeros, moving the writer index forward appropriately.
+    ///
+    /// - parameters:
+    ///     - integer: The integer to serialize.
+    @inlinable
+    mutating func writeIntegerAsASCII(_ integer: some FixedWidthInteger) {
+        let string = String(integer)
+        self.writeString(string)
+    }
+}

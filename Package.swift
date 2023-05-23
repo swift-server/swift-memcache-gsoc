@@ -38,6 +38,7 @@ let package = Package(
             name: "SwiftMemcache",
             dependencies: [
                 .product(name: "NIOCore", package: "swift-nio"),
+                .product(name: "NIOPosix", package: "swift-nio"),
                 .product(name: "Logging", package: "swift-log"),
             ]
         ),
