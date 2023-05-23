@@ -17,6 +17,6 @@ extension UInt8 {
     static var whitespace: UInt8 = UInt8(ascii: " ")
     static var newline: UInt8 = UInt8(ascii: "\n")
     static var carriageReturn: UInt8 = UInt8(ascii: "\r")
-    static var meta: UInt8 = UInt8(ascii: "m")
-    static var set: UInt8 = UInt8(ascii: "s")
+    static var m: UInt8 = UInt8(ascii: "m")
+    static var s: UInt8 = UInt8(ascii: "s")
 }
