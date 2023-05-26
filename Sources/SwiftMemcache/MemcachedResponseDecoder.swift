@@ -32,7 +32,6 @@ struct MemcachedResponseDecoder: ByteToMessageDecoder {
             preconditionFailure("Response code could not be read.")
         }
 
-
         // Check if there's a whitespace character, this indicates flags are present
         if buffer.readableBytes > 2, buffer.getInteger(at: buffer.readerIndex, as: UInt8.self) == UInt8.whitespace {
             buffer.moveReaderIndex(forwardBy: 1)
