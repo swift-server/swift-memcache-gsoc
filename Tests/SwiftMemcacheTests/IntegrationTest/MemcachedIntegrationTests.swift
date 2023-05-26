@@ -27,13 +27,28 @@ final class MemcachedIntegrationTest: XCTestCase {
         self.channel = ClientBootstrap(group: self.group)
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelInitializer { channel in
-                channel.pipeline.addHandler(MessageToByteHandler(MemcachedRequestEncoder()))
+                return channel.pipeline.addHandlers([MessageToByteHandler(MemcachedRequestEncoder()), ByteToMessageHandler(MemcachedResponseDecoder())])
             }
     }
 
     override func tearDown() {
         XCTAssertNoThrow(try self.group.syncShutdownGracefully())
         super.tearDown()
+    }
+
+    class ResponseHandler: ChannelInboundHandler {
+        typealias InboundIn = MemcachedResponse
+
+        let p: EventLoopPromise<MemcachedResponse>
+
+        init(p: EventLoopPromise<MemcachedResponse>) {
+            self.p = p
+        }
+
+        func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+            let response = self.unwrapInboundIn(data)
+            self.p.succeed(response)
+        }
     }
 
     func testConnectionToMemcachedServer() throws {
@@ -47,15 +62,27 @@ final class MemcachedIntegrationTest: XCTestCase {
             let command = MemcachedRequest.SetCommand(key: "foo", value: buffer)
             let request = MemcachedRequest.set(command)
 
-            // Write the request to the connection and wait for the result
-            connection.writeAndFlush(request).whenComplete { result in
-                switch result {
-                case .success:
-                    print("Request successfully sent to the server.")
-                case .failure(let error):
-                    XCTFail("Failed to send request: \(error)")
-                }
+            // Write the request to the connection
+            _ = connection.write(request)
+
+            // Prepare the promise for the response
+            let promise = connection.eventLoop.makePromise(of: MemcachedResponse.self)
+            let responseHandler = ResponseHandler(p: promise)
+            _ = connection.pipeline.addHandler(responseHandler)
+
+            // Flush and then read the response from the server
+            connection.flush()
+            connection.read()
+
+            // Wait for the promise to be fulfilled
+            let response = try promise.futureResult.wait()
+
+            // Check the response from the server.
+            switch response {
+            case .set(let setResponse):
+                print("Response status: \(setResponse.status)")
             }
+
         } catch {
             XCTFail("Failed to connect to Memcached server: \(error)")
         }
