@@ -32,14 +32,13 @@ struct MemcachedResponseDecoder: ByteToMessageDecoder {
             preconditionFailure("Response code could not be read.")
         }
 
-        var flags: ByteBuffer?
 
         // Check if there's a whitespace character, this indicates flags are present
         if buffer.readableBytes > 2, buffer.getInteger(at: buffer.readerIndex, as: UInt8.self) == UInt8.whitespace {
             buffer.moveReaderIndex(forwardBy: 1)
 
             // -2 for \r\n
-            flags = buffer.readSlice(length: buffer.readableBytes - 2)
+            _ = buffer.readSlice(length: buffer.readableBytes - 2)
         }
 
         guard buffer.readInteger(as: UInt8.self) == UInt8.carriageReturn,
@@ -47,7 +46,7 @@ struct MemcachedResponseDecoder: ByteToMessageDecoder {
             preconditionFailure("Line ending '\r\n' not found after the flags.")
         }
 
-        let setResponse = MemcachedResponse.SetResponse(status: responseCode, flags: flags)
+        let setResponse = MemcachedResponse.SetResponse(status: responseCode)
         context.fireChannelRead(self.wrapInboundOut(.set(setResponse)))
         return .continue
     }

@@ -17,7 +17,6 @@ import NIOCore
 enum MemcachedResponse {
     struct SetResponse {
         let status: ResponseStatus
-        let flags: ByteBuffer?
     }
 
     case set(SetResponse)
