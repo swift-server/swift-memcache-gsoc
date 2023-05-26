@@ -26,9 +26,9 @@ struct MemcachedResponseDecoder: ByteToMessageDecoder {
             return .needMoreData
         }
 
-        guard let asciiValue1 = buffer.readInteger(as: UInt8.self),
-              let asciiValue2 = buffer.readInteger(as: UInt8.self),
-              let responseCode = ResponseStatus(asciiValues: (asciiValue1, asciiValue2)) else {
+        guard let firstResponseDigit = buffer.readInteger(as: UInt8.self),
+              let secondResponseDigit = buffer.readInteger(as: UInt8.self),
+              let responseStatus = ResponseStatus(asciiValues: (firstResponseDigit, secondResponseDigit)) else {
             preconditionFailure("Response code could not be read.")
         }
 
@@ -45,7 +45,7 @@ struct MemcachedResponseDecoder: ByteToMessageDecoder {
             preconditionFailure("Line ending '\r\n' not found after the flags.")
         }
 
-        let setResponse = MemcachedResponse.SetResponse(status: responseCode)
+        let setResponse = MemcachedResponse.SetResponse(status: responseStatus)
         context.fireChannelRead(self.wrapInboundOut(.set(setResponse)))
         return .continue
     }
