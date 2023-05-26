@@ -50,7 +50,7 @@ struct MemcachedResponseDecoder: ByteToMessageDecoder {
         return .continue
     }
 
-    func decodeLast(context: ChannelHandlerContext, buffer: inout ByteBuffer, seenEOF: Bool) throws -> DecodingState {
+    func decodeLast(context: ChannelHandlerContext, buffer: inout ByteBuffer) throws -> DecodingState {
         return try self.decode(context: context, buffer: &buffer)
     }
 }
