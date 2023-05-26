@@ -31,7 +31,7 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         XCTAssertNoThrow(try self.channel.finish())
     }
 
-    private func testDecodeSetResponse(responseCode: [UInt8], expectedResponseCode: ResponseStatus, expectedFlags: ByteBuffer? = nil) throws {
+    func testDecodeSetResponse(responseCode: [UInt8], expectedResponseCode: ResponseStatus, expectedFlags: ByteBuffer? = nil) throws {
         // Prepare a response buffer with a response code
         var buffer = ByteBufferAllocator().buffer(capacity: 8)
         buffer.writeBytes(responseCode)
