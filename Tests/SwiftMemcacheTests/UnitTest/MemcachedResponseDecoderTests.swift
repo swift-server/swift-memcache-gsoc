@@ -31,11 +31,10 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         XCTAssertNoThrow(try self.channel.finish())
     }
 
-    func testDecodeSetResponse(responseCode: [UInt8], expectedResponseCode: ResponseStatus, expectedFlags: ByteBuffer? = nil) throws {
+    func testDecodeSetResponse(returnCode: [UInt8], expectedReturnCode: MemcachedResponse.ReturnCode) throws {
         // Prepare a response buffer with a response code
         var buffer = ByteBufferAllocator().buffer(capacity: 8)
-        buffer.writeBytes(responseCode)
-
+        buffer.writeBytes(returnCode)
         buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
 
         // Pass our response through the decoder
@@ -43,32 +42,29 @@ final class MemcachedResponseDecoderTests: XCTestCase {
 
         // Read the decoded response
         if let decoded = try self.channel.readInbound(as: MemcachedResponse.self) {
-            switch decoded {
-            case .set(let setResponse):
-                XCTAssertEqual(setResponse.status, expectedResponseCode)
-            }
+            XCTAssertEqual(decoded.returnCode, expectedReturnCode)
         } else {
             XCTFail("Failed to decode the inbound response.")
         }
     }
 
     func testDecodeSetStoredResponse() throws {
-        let storedResponseCode = [UInt8(ascii: "H"), UInt8(ascii: "D")]
-        try testDecodeSetResponse(responseCode: storedResponseCode, expectedResponseCode: .stored)
+        let storedReturnCode = [UInt8(ascii: "H"), UInt8(ascii: "D")]
+        try testDecodeSetResponse(returnCode: storedReturnCode, expectedReturnCode: .stored)
     }
 
     func testDecodeSetNotStoredResponse() throws {
-        let notStoredResponseCode = [UInt8(ascii: "N"), UInt8(ascii: "S")]
-        try testDecodeSetResponse(responseCode: notStoredResponseCode, expectedResponseCode: .notStored)
+        let notStoredReturnCode = [UInt8(ascii: "N"), UInt8(ascii: "S")]
+        try testDecodeSetResponse(returnCode: notStoredReturnCode, expectedReturnCode: .notStored)
     }
 
     func testDecodeSetExistResponse() throws {
-        let existResponseCode = [UInt8(ascii: "E"), UInt8(ascii: "X")]
-        try testDecodeSetResponse(responseCode: existResponseCode, expectedResponseCode: .exists)
+        let existReturnCode = [UInt8(ascii: "E"), UInt8(ascii: "X")]
+        try testDecodeSetResponse(returnCode: existReturnCode, expectedReturnCode: .exists)
     }
 
     func testDecodeSetNotFoundResponse() throws {
         let notFoundResponseCode = [UInt8(ascii: "N"), UInt8(ascii: "F")]
-        try testDecodeSetResponse(responseCode: notFoundResponseCode, expectedResponseCode: .notFound)
+        try testDecodeSetResponse(returnCode: notFoundResponseCode, expectedReturnCode: .notFound)
     }
 }

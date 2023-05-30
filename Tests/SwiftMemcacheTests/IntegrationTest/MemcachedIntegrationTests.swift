@@ -78,10 +78,7 @@ final class MemcachedIntegrationTest: XCTestCase {
             let response = try promise.futureResult.wait()
 
             // Check the response from the server.
-            switch response {
-            case .set(let setResponse):
-                print("Response status: \(setResponse.status)")
-            }
+            print("Response return code: \(response.returnCode)")
 
         } catch {
             XCTFail("Failed to connect to Memcached server: \(error)")

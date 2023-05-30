@@ -12,12 +12,28 @@
 //
 //===----------------------------------------------------------------------===//
 
-import NIOCore
+struct MemcachedResponse {
+    enum ReturnCode: UInt16 {
+        case stored
+        case notStored
+        case exists
+        case notFound
 
-enum MemcachedResponse {
-    struct SetResponse {
-        let status: ResponseStatus
+        init(_ value: UInt16) {
+            switch value {
+            case 0x4844: // "HD"
+                self = .stored
+            case 0x4E53: // "NS"
+                self = .notStored
+            case 0x4558: // "EX"
+                self = .exists
+            case 0x4E46: // "NF"
+                self = .notFound
+            default:
+                preconditionFailure("Unrecognized response code.")
+            }
+        }
     }
 
-    case set(SetResponse)
+    let returnCode: ReturnCode
 }
