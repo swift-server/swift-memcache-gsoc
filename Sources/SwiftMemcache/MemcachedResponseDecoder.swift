@@ -151,8 +151,6 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
                 return .waitForMoreBytes
             }
 
-            // Skip the CRLF
-            buffer.moveReaderIndex(forwardBy: 2)
             let response = MemcachedResponse(returnCode: returnCode, dataLength: dataLength, flags: flags)
             self.nextStep = .returnCode
             return .returnDecodedResponse(response)
