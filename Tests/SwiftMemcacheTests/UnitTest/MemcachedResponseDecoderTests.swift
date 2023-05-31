@@ -67,20 +67,4 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         let notFoundResponseCode = [UInt8(ascii: "N"), UInt8(ascii: "F")]
         try testDecodeSetResponse(returnCode: notFoundResponseCode, expectedReturnCode: .notFound)
     }
-    /*
-     func testDecodeSetNotStoredResponse() throws {
-         let notStoredReturnCode: UInt16 = (UInt16(UInt8(ascii: "N")) << 8) | UInt16(UInt8(ascii: "S"))
-         try testDecodeSetResponse(returnCode: notStoredReturnCode, expectedReturnCode: .notStored)
-     }
-
-     func testDecodeSetExistResponse() throws {
-         let existReturnCode: UInt16 = (UInt16(UInt8(ascii: "E")) << 8) | UInt16(UInt8(ascii: "X"))
-         try testDecodeSetResponse(returnCode: existReturnCode, expectedReturnCode: .exists)
-     }
-
-     func testDecodeSetNotFoundResponse() throws {
-         let notFoundReturnCode: UInt16 = (UInt16(UInt8(ascii: "N")) << 8) | UInt16(UInt8(ascii: "F"))
-         try testDecodeSetResponse(returnCode: notFoundReturnCode, expectedReturnCode: .notFound)
-     }
-     */
 }
