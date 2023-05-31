@@ -13,14 +13,14 @@
 //===----------------------------------------------------------------------===//
 
 struct MemcachedResponse {
-    enum ReturnCode: UInt16 {
+    enum ReturnCode {
         case stored
         case notStored
         case exists
         case notFound
 
-        init(_ value: UInt16) {
-            switch value {
+        init(_ bytes: UInt16) {
+            switch bytes {
             case 0x4844: // "HD"
                 self = .stored
             case 0x4E53: // "NS"
@@ -35,5 +35,7 @@ struct MemcachedResponse {
         }
     }
 
-    let returnCode: ReturnCode
+    var returnCode: ReturnCode
+    var dataLength: UInt64?
+    var flags: [UInt8]
 }
