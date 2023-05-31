@@ -136,10 +136,9 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
                 return .continueDecodeLoop
             }
 
-        case .decodeNextFlag(let returnCode, let dataLength, var flags):
+        case .decodeNextFlag(let returnCode, let dataLength, let flags):
             if let nextByte = buffer.readInteger(as: UInt8.self), nextByte != UInt8.whitespace {
-                flags.append(nextByte)
-                self.nextStep = .decodeNextFlag(returnCode, dataLength, flags)
+                self.nextStep = .decodeNextFlag(returnCode, dataLength, [])
                 return .continueDecodeLoop
             } else {
                 self.nextStep = .decodeEndOfLine(returnCode, dataLength, flags)
