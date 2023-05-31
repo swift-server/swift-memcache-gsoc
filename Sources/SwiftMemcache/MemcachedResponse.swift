@@ -37,5 +37,4 @@ struct MemcachedResponse {
 
     var returnCode: ReturnCode
     var dataLength: UInt64?
-    var flags: [UInt8]
 }
