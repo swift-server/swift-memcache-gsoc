@@ -25,24 +25,3 @@ extension ByteBuffer {
         self.writeString(string)
     }
 }
-
-extension ByteBuffer {
-    /// Checks if the next two bytes in the buffer are a carriage return and newline.
-    /// Does not consume any bytes.
-    func isNextEndOfLine() -> Bool {
-        return self.readableBytes >= 2 &&
-            self.getInteger(at: self.readerIndex, as: UInt8.self) == UInt8.carriageReturn &&
-            self.getInteger(at: self.readerIndex + 1, as: UInt8.self) == UInt8.newline
-    }
-
-    /// Consumes the next two bytes in the buffer if they are a carriage return and newline.
-    /// Returns `true` if the end of line was successfully consumed, `false` otherwise.
-    mutating func consumeEndOfLine() -> Bool {
-        guard self.isNextEndOfLine() else {
-            return false
-        }
-
-        self.moveReaderIndex(forwardBy: 2)
-        return true
-    }
-}

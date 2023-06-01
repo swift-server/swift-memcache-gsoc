@@ -19,52 +19,78 @@ import XCTest
 
 final class MemcachedResponseDecoderTests: XCTestCase {
     var decoder: MemcachedResponseDecoder!
-    var channel: EmbeddedChannel!
 
     override func setUp() {
         super.setUp()
         self.decoder = MemcachedResponseDecoder()
-        self.channel = EmbeddedChannel(handler: ByteToMessageHandler(self.decoder))
     }
 
-    override func tearDown() {
-        XCTAssertNoThrow(try self.channel.finish())
-    }
-
-    func testDecodeSetResponse(returnCode: [UInt8], expectedReturnCode: MemcachedResponse.ReturnCode) throws {
-        // Prepare a response buffer with a response code
+    func makeMemcachedResponseByteBuffer(from response: MemcachedResponse) -> ByteBuffer {
         var buffer = ByteBufferAllocator().buffer(capacity: 8)
-        buffer.writeBytes(returnCode)
+        var returnCode: UInt16 = 0
+
+        // Convert the return code enum to UInt16 then write it to the buffer.
+        switch response.returnCode {
+        case .HD:
+            returnCode = 0x4844
+        case .NS:
+            returnCode = 0x4E53
+        case .EX:
+            returnCode = 0x4558
+        case .NF:
+            returnCode = 0x4E46
+        case .VA:
+            returnCode = 0x5641
+        }
+
+        buffer.writeInteger(returnCode)
+
+        // If there's a data length, write it to the buffer.
+        if let dataLength = response.dataLength, response.returnCode == .VA {
+            buffer.writeInteger(dataLength, as: UInt64.self)
+        }
+
         buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
+        return buffer
+    }
 
+    func testDecodeResponse(buffer: inout ByteBuffer, expectedReturnCode: MemcachedResponse.ReturnCode) throws {
         // Pass our response through the decoder
-        XCTAssertNoThrow(try self.channel.writeInbound(buffer))
-
-        // Read the decoded response
-        if let decoded = try self.channel.readInbound(as: MemcachedResponse.self) {
+        var output: MemcachedResponse? = nil
+        do {
+            output = try self.decoder.decode(buffer: &buffer)
+        } catch {
+            XCTFail("Decoding failed with error: \(error)")
+        }
+        // Check the decoded response
+        if let decoded = output {
             XCTAssertEqual(decoded.returnCode, expectedReturnCode)
         } else {
             XCTFail("Failed to decode the inbound response.")
         }
     }
 
-    func testDecodeSetStoredResponse() throws {
-        let storedReturnCode = [UInt8(ascii: "H"), UInt8(ascii: "D")]
-        try testDecodeSetResponse(returnCode: storedReturnCode, expectedReturnCode: .stored)
+    func testDecodeStoredResponse() throws {
+        let storedResponse = MemcachedResponse(returnCode: .HD, dataLength: nil)
+        var buffer = self.makeMemcachedResponseByteBuffer(from: storedResponse)
+        try self.testDecodeResponse(buffer: &buffer, expectedReturnCode: .HD)
     }
 
-    func testDecodeSetNotStoredResponse() throws {
-        let notStoredReturnCode = [UInt8(ascii: "N"), UInt8(ascii: "S")]
-        try testDecodeSetResponse(returnCode: notStoredReturnCode, expectedReturnCode: .notStored)
+    func testDecodeNotStoredResponse() throws {
+        let notStoredResponse = MemcachedResponse(returnCode: .NS, dataLength: nil)
+        var buffer = self.makeMemcachedResponseByteBuffer(from: notStoredResponse)
+        try self.testDecodeResponse(buffer: &buffer, expectedReturnCode: .NS)
     }
 
-    func testDecodeSetExistResponse() throws {
-        let existReturnCode = [UInt8(ascii: "E"), UInt8(ascii: "X")]
-        try testDecodeSetResponse(returnCode: existReturnCode, expectedReturnCode: .exists)
+    func testDecodeExistResponse() throws {
+        let existResponse = MemcachedResponse(returnCode: .EX, dataLength: nil)
+        var buffer = self.makeMemcachedResponseByteBuffer(from: existResponse)
+        try self.testDecodeResponse(buffer: &buffer, expectedReturnCode: .EX)
     }
 
-    func testDecodeSetNotFoundResponse() throws {
-        let notFoundResponseCode = [UInt8(ascii: "N"), UInt8(ascii: "F")]
-        try testDecodeSetResponse(returnCode: notFoundResponseCode, expectedReturnCode: .notFound)
+    func testDecodeNotFoundResponse() throws {
+        let notFoundResponse = MemcachedResponse(returnCode: .NF, dataLength: nil)
+        var buffer = self.makeMemcachedResponseByteBuffer(from: notFoundResponse)
+        try self.testDecodeResponse(buffer: &buffer, expectedReturnCode: .NF)
     }
 }

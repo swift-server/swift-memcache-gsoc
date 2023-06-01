@@ -14,21 +14,24 @@
 
 struct MemcachedResponse {
     enum ReturnCode {
-        case stored
-        case notStored
-        case exists
-        case notFound
+        case HD
+        case NS
+        case EX
+        case NF
+        case VA
 
         init(_ bytes: UInt16) {
             switch bytes {
-            case 0x4844: // "HD"
-                self = .stored
-            case 0x4E53: // "NS"
-                self = .notStored
-            case 0x4558: // "EX"
-                self = .exists
-            case 0x4E46: // "NF"
-                self = .notFound
+            case 0x4844:
+                self = .HD
+            case 0x4E53:
+                self = .NS
+            case 0x4558:
+                self = .EX
+            case 0x4E46:
+                self = .NF
+            case 0x5641:
+                self = .VA
             default:
                 preconditionFailure("Unrecognized response code.")
             }

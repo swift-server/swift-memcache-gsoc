@@ -74,8 +74,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         case dataLengthOrFlag(MemcachedResponse.ReturnCode)
         /// Decode the next flag
         case decodeNextFlag(MemcachedResponse.ReturnCode, UInt64?)
-        /// Decode end of line
-        case decodeEndOfLine(MemcachedResponse.ReturnCode, UInt64?)
+        // TODO: Add a next step for decoding the response data if the return code is VA
     }
 
     /// The action that the decoder will take in response to the current state of the ByteBuffer and the `NextStep`.
@@ -122,32 +121,32 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
             return .continueDecodeLoop
 
         case .dataLengthOrFlag(let returnCode):
-            if returnCode == .stored {
+            if returnCode == .VA {
                 // TODO: Implement decoding of data length
             }
 
-            // Check if the next bytes are \r\n
-            if buffer.consumeEndOfLine() {
+            guard let nextByte = buffer.readInteger(as: UInt8.self) else {
+                return .waitForMoreBytes
+            }
+
+            if nextByte == UInt8.whitespace {
+                self.nextStep = .decodeNextFlag(returnCode, nil)
+                return .continueDecodeLoop
+            } else if nextByte == UInt8.carriageReturn {
+                guard let nextNextByte = buffer.readInteger(as: UInt8.self), nextNextByte == UInt8.newline else {
+                    return .waitForMoreBytes
+                }
                 let response = MemcachedResponse(returnCode: returnCode, dataLength: nil)
                 self.nextStep = .returnCode
                 return .returnDecodedResponse(response)
             } else {
-                self.nextStep = .decodeNextFlag(returnCode, nil)
-                return .continueDecodeLoop
+                preconditionFailure("Expected whitespace or \\r")
             }
 
         case .decodeNextFlag(let returnCode, let dataLength):
             while let nextByte = buffer.readInteger(as: UInt8.self), nextByte != UInt8.whitespace {
                 // for now consume the byte and do nothing with it.
                 // TODO: Implement decoding of flags
-            }
-
-            self.nextStep = .decodeEndOfLine(returnCode, dataLength)
-            return .continueDecodeLoop
-
-        case .decodeEndOfLine(let returnCode, let dataLength):
-            guard buffer.consumeEndOfLine() else {
-                return .waitForMoreBytes
             }
 
             let response = MemcachedResponse(returnCode: returnCode, dataLength: dataLength)
