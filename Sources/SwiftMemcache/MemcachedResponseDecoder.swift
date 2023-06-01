@@ -57,17 +57,19 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         /// readable bytes in the buffer, which can indicate a bad message.
         case unexpectedEOF
 
-        /// This error is thrown when EOF is encountered but the decoder's next step
-        /// is not `.none`. This error suggests that the message ended prematurely,
+        /// This error is thrown when EOF is encountered but there is still an expected next step
+        /// in the decoder's state machine. This error suggests that the message ended prematurely,
         /// possibly indicating a bad message.
         case unexpectedNextStep(NextStep)
+
+        /// This error is thrown when an unexpected character is encountered in the buffer
+        /// during the decoding process.
+        case unexpectedCharacter(UInt8)
     }
 
     /// The next step that the decoder will take. The value of this enum determines how the decoder
     /// processes the current state of the ByteBuffer.
     enum NextStep: Hashable {
-        /// No further steps are needed, the decoding process is complete for the current message.
-        case none
         /// The initial step.
         case returnCode
         /// Decode the data length, flags or check if we are the end
@@ -91,7 +93,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
     var nextStep: NextStep = .returnCode
 
     mutating func decode(buffer: inout ByteBuffer) throws -> InboundOut? {
-        while self.nextStep != .none {
+        while true {
             switch try self.next(buffer: &buffer) {
             case .returnDecodedResponse(let response):
                 return response
@@ -103,14 +105,10 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
                 ()
             }
         }
-        return nil
     }
 
     mutating func next(buffer: inout ByteBuffer) throws -> NextDecodeAction {
         switch self.nextStep {
-        case .none:
-            return .waitForMoreBytes
-
         case .returnCode:
             guard let bytes = buffer.readInteger(as: UInt16.self) else {
                 return .waitForMoreBytes
@@ -123,6 +121,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         case .dataLengthOrFlag(let returnCode):
             if returnCode == .VA {
                 // TODO: Implement decoding of data length
+                fatalError("Decoding for VA return code is not yet implemented")
             }
 
             guard let nextByte = buffer.readInteger(as: UInt8.self) else {
@@ -140,7 +139,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
                 self.nextStep = .returnCode
                 return .returnDecodedResponse(response)
             } else {
-                preconditionFailure("Expected whitespace or \\r")
+                throw MemcachedDecoderError.unexpectedCharacter(nextByte)
             }
 
         case .decodeNextFlag(let returnCode, let dataLength):
@@ -168,7 +167,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         }
 
         switch self.nextStep {
-        case .none, .returnCode:
+        case .returnCode:
             return nil
         default:
             throw MemcachedDecoderError.unexpectedNextStep(self.nextStep)

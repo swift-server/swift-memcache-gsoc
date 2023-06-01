@@ -47,6 +47,7 @@ final class MemcachedResponseDecoderTests: XCTestCase {
 
         // If there's a data length, write it to the buffer.
         if let dataLength = response.dataLength, response.returnCode == .VA {
+            buffer.writeInteger(UInt8.whitespace, as: UInt8.self)
             buffer.writeInteger(dataLength, as: UInt64.self)
         }
 
