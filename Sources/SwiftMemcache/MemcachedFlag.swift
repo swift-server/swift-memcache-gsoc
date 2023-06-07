@@ -16,6 +16,15 @@ enum MemcachedFlag {
     /// v: return item value in <data block>
     case v
 
+    init?(bytes: UInt8) {
+        switch bytes {
+        case 0x76:
+            self = .v
+        default:
+            return nil
+        }
+    }
+
     var bytes: UInt8 {
         switch self {
         case .v:

@@ -56,12 +56,10 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         /// This error is thrown when EOF is encountered but there are still
         /// readable bytes in the buffer, which can indicate a bad message.
         case unexpectedEOF
-
         /// This error is thrown when EOF is encountered but there is still an expected next step
         /// in the decoder's state machine. This error suggests that the message ended prematurely,
         /// possibly indicating a bad message.
         case unexpectedNextStep(NextStep)
-
         /// This error is thrown when an unexpected character is encountered in the buffer
         /// during the decoding process.
         case unexpectedCharacter(UInt8)
@@ -77,6 +75,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         /// Decode the next flag
         case decodeNextFlag(MemcachedResponse.ReturnCode, UInt64?)
         // TODO: Add a next step for decoding the response data if the return code is VA
+        case decodeValue(MemcachedResponse.ReturnCode, UInt64, [MemcachedFlag])
     }
 
     /// The action that the decoder will take in response to the current state of the ByteBuffer and the `NextStep`.
@@ -120,8 +119,24 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
 
         case .dataLengthOrFlag(let returnCode):
             if returnCode == .VA {
-                // TODO: Implement decoding of data length
-                fatalError("Decoding for VA return code is not yet implemented")
+                guard let dataLength = buffer.readInteger(as: UInt64.self) else {
+                    return .waitForMoreBytes
+                }
+
+                let flags: [MemcachedFlag] = []
+                while let nextByte = buffer.readInteger(as: UInt8.self), nextByte != UInt8.whitespace {
+                    // TODO: Implement decoding of flags
+                }
+
+                guard let nextByte = buffer.readInteger(as: UInt8.self),
+                      nextByte == UInt8.carriageReturn,
+                      let nextNextByte = buffer.readInteger(as: UInt8.self),
+                      nextNextByte == UInt8.newline else {
+                    return .waitForMoreBytes
+                }
+
+                self.nextStep = .decodeValue(returnCode, dataLength, flags)
+                return .continueDecodeLoop
             }
 
             guard let nextByte = buffer.readInteger(as: UInt8.self) else {
@@ -149,6 +164,28 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
             }
 
             let response = MemcachedResponse(returnCode: returnCode, dataLength: dataLength)
+            self.nextStep = .returnCode
+            return .returnDecodedResponse(response)
+
+        case .decodeValue(let returnCode, let dataLength, let flags):
+            guard buffer.readableBytes >= dataLength else {
+                return .waitForMoreBytes
+            }
+
+            var data: ByteBuffer = .init()
+            for _ in 0..<dataLength {
+                let byte = buffer.readInteger(as: UInt8.self)
+                data.writeInteger(byte!)
+            }
+
+            guard let nextByte = buffer.readInteger(as: UInt8.self),
+                  nextByte == UInt8.carriageReturn,
+                  let nextNextByte = buffer.readInteger(as: UInt8.self),
+                  nextNextByte == UInt8.newline else {
+                return .waitForMoreBytes
+            }
+
+            let response = MemcachedResponse(returnCode: returnCode, dataLength: dataLength, flags: flags, value: data)
             self.nextStep = .returnCode
             return .returnDecodedResponse(response)
         }

@@ -45,10 +45,26 @@ final class MemcachedResponseDecoderTests: XCTestCase {
 
         buffer.writeInteger(returnCode)
 
-        // If there's a data length, write it to the buffer.
+        // Write the data length <size> to the buffer.
         if let dataLength = response.dataLength, response.returnCode == .VA {
-            buffer.writeInteger(UInt8.whitespace, as: UInt8.self)
-            buffer.writeInteger(dataLength, as: UInt64.self)
+            buffer.writeInteger(dataLength)
+            buffer.writeInteger(UInt8.whitespace)
+
+            // Add flags after dataLength
+            for flag in response.flags ?? [] {
+                buffer.writeInteger(flag.bytes)
+                buffer.writeInteger(UInt8.whitespace)
+            }
+
+            buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
+
+            // Write the value <data block> to the buffer if it exists
+            if let value = response.value {
+                var mutableValue = value
+                buffer.writeBuffer(&mutableValue)
+            }
+
+            buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
         }
 
         buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
@@ -93,5 +109,35 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         let notFoundResponse = MemcachedResponse(returnCode: .NF, dataLength: nil)
         var buffer = self.makeMemcachedResponseByteBuffer(from: notFoundResponse)
         try self.testDecodeResponse(buffer: &buffer, expectedReturnCode: .NF)
+    }
+
+    func testDecodeValueResponse() throws {
+        let allocator = ByteBufferAllocator()
+        var valueBuffer = allocator.buffer(capacity: 8)
+        valueBuffer.writeString("hi")
+
+        let valueResponse = MemcachedResponse(returnCode: .VA, dataLength: 2, flags: [], value: valueBuffer)
+        var buffer = self.makeMemcachedResponseByteBuffer(from: valueResponse)
+
+        // Pass our response through the decoder
+        var output: MemcachedResponse? = nil
+        do {
+            output = try self.decoder.decode(buffer: &buffer)
+        } catch {
+            XCTFail("Decoding failed with error: \(error)")
+        }
+        // Check the decoded response
+        if let decoded = output {
+            XCTAssertEqual(decoded.returnCode, .VA)
+            XCTAssertEqual(decoded.dataLength, 2)
+            if let value = decoded.value {
+                var copiedBuffer = value
+                XCTAssertEqual(copiedBuffer.readString(length: Int(decoded.dataLength!)), "hi")
+            } else {
+                XCTFail("Decoded value was not found.")
+            }
+        } else {
+            XCTFail("Failed to decode the inbound response.")
+        }
     }
 }
