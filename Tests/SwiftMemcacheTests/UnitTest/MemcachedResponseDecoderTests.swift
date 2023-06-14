@@ -51,9 +51,11 @@ final class MemcachedResponseDecoderTests: XCTestCase {
             buffer.writeInteger(UInt8.whitespace)
 
             // Add flags after dataLength
-            for flag in response.flags ?? [] {
-                buffer.writeInteger(flag.bytes)
-                buffer.writeInteger(UInt8.whitespace)
+            if let flags = response.flags {
+                if flags.v, let byteValue = MemcachedFlags.flagToByte[\MemcachedFlags.v] {
+                    buffer.writeInteger(byteValue)
+                    buffer.writeInteger(UInt8.whitespace)
+                }
             }
 
             buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
@@ -116,7 +118,8 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         var valueBuffer = allocator.buffer(capacity: 8)
         valueBuffer.writeString("hi")
 
-        let valueResponse = MemcachedResponse(returnCode: .VA, dataLength: 2, flags: [], value: valueBuffer)
+        let flags = MemcachedFlags()
+        let valueResponse = MemcachedResponse(returnCode: .VA, dataLength: 2, flags: flags, value: valueBuffer)
         var buffer = self.makeMemcachedResponseByteBuffer(from: valueResponse)
 
         // Pass our response through the decoder

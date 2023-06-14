@@ -25,3 +25,19 @@ extension ByteBuffer {
         self.writeString(string)
     }
 }
+
+extension ByteBuffer {
+    /// Writes flags to the ByteBuffer. Iterates over all the flags in MemcachedFlag.
+    /// If a flag is set, its corresponding byte value and a whitespace character is written into the ByteBuffer.
+    ///
+    /// - parameters:
+    ///     - integer: The MemcachedFlag to serialize.
+    mutating func write(flags: MemcachedFlags) {
+        MemcachedFlags.flagToByte.forEach { keyPath, byte in
+            if flags[keyPath: keyPath] {
+                self.writeInteger(UInt8.whitespace)
+                self.writeInteger(byte)
+            }
+        }
+    }
+}

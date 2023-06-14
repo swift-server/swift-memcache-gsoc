@@ -42,6 +42,6 @@ struct MemcachedResponse {
 
     var returnCode: ReturnCode
     var dataLength: UInt64?
-    var flags: [MemcachedFlag]?
+    var flags: MemcachedFlags?
     var value: ByteBuffer?
 }

@@ -45,7 +45,10 @@ final class MemcachedRequestEncoderTests: XCTestCase {
 
     func testEncodeGetRequest() {
         // Prepare a MemcachedRequest
-        let command = MemcachedRequest.GetCommand(key: "foo", flags: [.v])
+        let flagBytes: Set<UInt8> = [0x76]
+        let flags = MemcachedFlags(flagBytes: flagBytes)
+        let command = MemcachedRequest.GetCommand(key: "foo", flags: flags)
+
         let request = MemcachedRequest.get(command)
 
         // Pass our request through the encoder

@@ -75,7 +75,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         /// Decode the next flag
         case decodeNextFlag(MemcachedResponse.ReturnCode, UInt64?)
         // TODO: Add a next step for decoding the response data if the return code is VA
-        case decodeValue(MemcachedResponse.ReturnCode, UInt64, [MemcachedFlag])
+        case decodeValue(MemcachedResponse.ReturnCode, UInt64, MemcachedFlags)
     }
 
     /// The action that the decoder will take in response to the current state of the ByteBuffer and the `NextStep`.
@@ -123,10 +123,12 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
                     return .waitForMoreBytes
                 }
 
-                let flags: [MemcachedFlag] = []
+                var flagBytes: Set<UInt8> = []
                 while let nextByte = buffer.readInteger(as: UInt8.self), nextByte != UInt8.whitespace {
-                    // TODO: Implement decoding of flags
+                    flagBytes.insert(nextByte)
                 }
+
+                let flags = MemcachedFlags(flagBytes: flagBytes)
 
                 guard let nextByte = buffer.readInteger(as: UInt8.self),
                       nextByte == UInt8.carriageReturn,
@@ -158,12 +160,13 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
             }
 
         case .decodeNextFlag(let returnCode, let dataLength):
+            var flagBytes: Set<UInt8> = []
             while let nextByte = buffer.readInteger(as: UInt8.self), nextByte != UInt8.whitespace {
-                // for now consume the byte and do nothing with it.
-                // TODO: Implement decoding of flags
+                flagBytes.insert(nextByte)
             }
 
-            let response = MemcachedResponse(returnCode: returnCode, dataLength: dataLength)
+            let flags = MemcachedFlags(flagBytes: flagBytes)
+            let response = MemcachedResponse(returnCode: returnCode, dataLength: dataLength, flags: flags)
             self.nextStep = .returnCode
             return .returnDecodedResponse(response)
 
@@ -172,10 +175,10 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
                 return .waitForMoreBytes
             }
 
-            var data: ByteBuffer = .init()
+            var value: ByteBuffer = .init()
             for _ in 0..<dataLength {
                 let byte = buffer.readInteger(as: UInt8.self)
-                data.writeInteger(byte!)
+                value.writeInteger(byte!)
             }
 
             guard let nextByte = buffer.readInteger(as: UInt8.self),
@@ -185,7 +188,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
                 return .waitForMoreBytes
             }
 
-            let response = MemcachedResponse(returnCode: returnCode, dataLength: dataLength, flags: flags, value: data)
+            let response = MemcachedResponse(returnCode: returnCode, dataLength: dataLength, flags: flags, value: value)
             self.nextStep = .returnCode
             return .returnDecodedResponse(response)
         }

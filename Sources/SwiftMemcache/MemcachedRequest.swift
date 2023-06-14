@@ -22,7 +22,7 @@ enum MemcachedRequest {
 
     struct GetCommand {
         let key: String
-        var flags: [MemcachedFlag]
+        var flags: MemcachedFlags
     }
 
     case set(SetCommand)
