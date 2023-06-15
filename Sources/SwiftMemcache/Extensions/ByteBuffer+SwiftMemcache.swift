@@ -41,3 +41,16 @@ extension ByteBuffer {
         }
     }
 }
+
+extension ByteBuffer {
+    /// Read flags from this `ByteBuffer`, moving the reader index forward appropriately.
+    ///
+    /// - returns: An instance of `MemcachedFlags` containing the flags read from the buffer.
+    mutating func readMemcachedFlags() -> MemcachedFlags {
+        var flagBytes: Set<UInt8> = []
+        while let nextByte = self.readInteger(as: UInt8.self), nextByte != UInt8.whitespace {
+            flagBytes.insert(nextByte)
+        }
+        return MemcachedFlags(flagBytes: flagBytes)
+    }
+}

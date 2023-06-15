@@ -53,6 +53,6 @@ extension MemcachedFlags: Equatable {
 
 extension MemcachedFlags: Hashable {
     func hash(into hasher: inout Hasher) {
-        hasher.combine(v)
+        hasher.combine(self.v)
     }
 }

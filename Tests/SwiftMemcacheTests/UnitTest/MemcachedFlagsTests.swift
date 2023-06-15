@@ -21,4 +21,3 @@ final class MemcachedFlagsTests: XCTestCase {
         XCTAssertTrue(flags.v)
     }
 }
-
