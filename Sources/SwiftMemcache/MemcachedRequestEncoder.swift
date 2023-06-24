@@ -53,7 +53,7 @@ struct MemcachedRequestEncoder: MessageToByteEncoder {
             out.writeBytes(command.key.utf8)
 
             // write flags if there are any
-            out.write(flags: command.flags)
+            out.writeMemcachedFlags(flags: command.flags)
 
             // write separator
             out.writeInteger(UInt8.carriageReturn)

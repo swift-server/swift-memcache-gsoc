@@ -27,14 +27,35 @@ extension ByteBuffer {
 }
 
 extension ByteBuffer {
-    /// Writes flags to the ByteBuffer. Iterates over all the flags in MemcachedFlag.
-    /// If a flag is set, its corresponding byte value and a whitespace character is written into the ByteBuffer.
+    /// Reads the ASCII representation of a non-negative integer from this buffer.
+    /// Whitespace or newline indicates the end of the integer.
+    ///
+    /// - returns: The integer, or `nil` if there's not enough readable bytes.
+    mutating func readIntegerFromASCII() -> UInt64? {
+        var value: UInt64 = 0
+        while let digit = self.readInteger(as: UInt8.self) {
+            switch digit {
+            case UInt8(ascii: "0")...UInt8(ascii: "9"):
+                value = value * 10 + UInt64(digit - UInt8(ascii: "0"))
+            case UInt8.whitespace, UInt8.carriageReturn:
+                return value
+            default:
+                return nil
+            }
+        }
+        return nil
+    }
+}
+
+extension ByteBuffer {
+    /// Writes flags to the ByteBuffer. Iterates over all the flags in MemcachedFlags.
+    /// If a flag is set to true, its corresponding byte value and a whitespace character is written into the ByteBuffer.
     ///
     /// - parameters:
-    ///     - integer: The MemcachedFlag to serialize.
-    mutating func write(flags: MemcachedFlags) {
+    ///     - flags: The MemcachedFlags instance to serialize. This instance holds the flags to be written.
+    mutating func writeMemcachedFlags(flags: MemcachedFlags) {
         MemcachedFlags.flagToByte.forEach { keyPath, byte in
-            if flags[keyPath: keyPath] {
+            if flags[keyPath: keyPath] == true {
                 self.writeInteger(UInt8.whitespace)
                 self.writeInteger(byte)
             }

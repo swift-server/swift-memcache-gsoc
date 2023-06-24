@@ -18,6 +18,10 @@ import XCTest
 final class MemcachedFlagsTests: XCTestCase {
     func testVFlagBytes() {
         let flags = MemcachedFlags(flagBytes: [0x76])
-        XCTAssertTrue(flags.v)
+        if let shouldReturnValue = flags.shouldReturnValue {
+            XCTAssertTrue(shouldReturnValue)
+        } else {
+            XCTFail("Flag shouldReturnValue is nil")
+        }
     }
 }

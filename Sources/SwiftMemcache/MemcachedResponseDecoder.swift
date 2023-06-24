@@ -150,11 +150,12 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         case .flag(let returnCode, let dataLength):
             let flags = buffer.readMemcachedFlags()
 
-            guard let nextByte = buffer.readInteger(as: UInt8.self),
+            guard buffer.readableBytes >= 2,
+                  let nextByte = buffer.readInteger(as: UInt8.self),
                   nextByte == UInt8.carriageReturn,
                   let nextNextByte = buffer.readInteger(as: UInt8.self),
                   nextNextByte == UInt8.newline else {
-                return .waitForMoreBytes
+                preconditionFailure("Expected to find CRLF at end of response")
             }
 
             self.nextStep = .decodeValue(returnCode, dataLength!, flags)
@@ -168,24 +169,23 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
             return .returnDecodedResponse(response)
 
         case .decodeValue(let returnCode, let dataLength, let flags):
-            guard buffer.readableBytes >= dataLength else {
+            guard buffer.readableBytes >= dataLength + 2 else {
                 return .waitForMoreBytes
             }
 
-            var value: ByteBuffer = .init()
-            for _ in 0..<dataLength {
-                let byte = buffer.readInteger(as: UInt8.self)
-                value.writeInteger(byte!)
+            guard let data = buffer.readSlice(length: Int(dataLength)) else {
+                throw MemcachedDecoderError.unexpectedEOF
             }
 
-            guard let nextByte = buffer.readInteger(as: UInt8.self),
+            guard buffer.readableBytes >= 2,
+                  let nextByte = buffer.readInteger(as: UInt8.self),
                   nextByte == UInt8.carriageReturn,
                   let nextNextByte = buffer.readInteger(as: UInt8.self),
                   nextNextByte == UInt8.newline else {
-                return .waitForMoreBytes
+                preconditionFailure("Expected to find CRLF at end of response")
             }
 
-            let response = MemcachedResponse(returnCode: returnCode, dataLength: dataLength, flags: flags, value: value)
+            let response = MemcachedResponse(returnCode: returnCode, dataLength: dataLength, flags: flags, value: data)
             self.nextStep = .returnCode
             return .returnDecodedResponse(response)
         }

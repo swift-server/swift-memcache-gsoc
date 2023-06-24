@@ -12,47 +12,38 @@
 //
 //===----------------------------------------------------------------------===//
 
+/// Struct representing the flags of a Memcached command.
+///
+/// Flags for the 'mg' (meta get) command are represented in this struct.
+/// Currently, only the 'v' flag for the meta get command is supported,
+/// which dictates whether the item value should be returned in the data block.
 struct MemcachedFlags {
-    var v: Bool = false
+    /// Flag 'v' for the 'mg' (meta get) command.
+    ///
+    /// If true, the item value is returned in the data block.
+    /// If false, the data block for the 'mg' response is optional, and the response code changes from "HD" to "VA <size>".
+    var shouldReturnValue: Bool?
 
-    static let flagToByte: [KeyPath<MemcachedFlags, Bool>: UInt8] = [
-        \MemcachedFlags.v: 0x76,
+    /// Maps key paths of this struct to their corresponding flag bytes.
+    static let flagToByte: [KeyPath<MemcachedFlags, Bool?>: UInt8] = [
+        \MemcachedFlags.shouldReturnValue: 0x76,
     ]
 
     init() {
-        self.v = false
+        self.shouldReturnValue = nil
     }
 
     init(flagBytes: Set<UInt8>) {
         for byte in flagBytes {
             switch byte {
             case 0x76:
-                self.v = true
+                self.shouldReturnValue = true
             default:
                 preconditionFailure("Unrecognized flag.")
             }
         }
     }
-
-    var bytes: Set<UInt8> {
-        var result = Set<UInt8>()
-        for (keyPath, byte) in Self.flagToByte {
-            if self[keyPath: keyPath] {
-                result.insert(byte)
-            }
-        }
-        return result
-    }
 }
 
-extension MemcachedFlags: Equatable {
-    static func == (lhs: MemcachedFlags, rhs: MemcachedFlags) -> Bool {
-        return lhs.v == rhs.v
-    }
-}
-
-extension MemcachedFlags: Hashable {
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(self.v)
-    }
-}
+extension MemcachedFlags: Equatable {}
+extension MemcachedFlags: Hashable {}

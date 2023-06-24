@@ -52,7 +52,7 @@ final class MemcachedResponseDecoderTests: XCTestCase {
 
             // Add flags after dataLength
             if let flags = response.flags {
-                if flags.v, let byteValue = MemcachedFlags.flagToByte[\MemcachedFlags.v] {
+                if let shouldReturnValue = flags.shouldReturnValue, shouldReturnValue, let byteValue = MemcachedFlags.flagToByte[\MemcachedFlags.shouldReturnValue] {
                     buffer.writeInteger(byteValue)
                     buffer.writeInteger(UInt8.whitespace)
                 }
