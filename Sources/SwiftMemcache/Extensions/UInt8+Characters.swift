@@ -21,7 +21,3 @@ extension UInt8 {
     static var g: UInt8 = .init(ascii: "g")
     static var v: UInt8 = .init(ascii: "v")
 }
-
-extension UInt8 {
-    static var size: Int { MemoryLayout<UInt8>.size }
-}

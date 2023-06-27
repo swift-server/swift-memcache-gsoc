@@ -48,30 +48,33 @@ extension ByteBuffer {
 }
 
 extension ByteBuffer {
-    /// Writes flags to the ByteBuffer. Iterates over all the flags in MemcachedFlags.
-    /// If a flag is set to true, its corresponding byte value and a whitespace character is written into the ByteBuffer.
+    /// Serialize and writes MemcachedFlags to the ByteBuffer.
+    ///
+    /// This method runs a loop over the flags contained in a MemcachedFlags instance.
+    /// For each flag that is set to true, its corresponding byte value,
+    /// followed by a whitespace character, is added to the ByteBuffer.
     ///
     /// - parameters:
-    ///     - flags: The MemcachedFlags instance to serialize. This instance holds the flags to be written.
+    ///     - flags: An instance of MemcachedFlags that holds the flags intended to be serialized and written to the ByteBuffer.
     mutating func writeMemcachedFlags(flags: MemcachedFlags) {
-        MemcachedFlags.flagToByte.forEach { keyPath, byte in
-            if flags[keyPath: keyPath] == true {
-                self.writeInteger(UInt8.whitespace)
-                self.writeInteger(byte)
-            }
+        if let shouldReturnValue = flags.shouldReturnValue, shouldReturnValue {
+            self.writeInteger(UInt8.whitespace)
+            self.writeInteger(UInt8.v)
         }
     }
 }
 
 extension ByteBuffer {
-    /// Read flags from this `ByteBuffer`, moving the reader index forward appropriately.
+    /// Parses flags from this `ByteBuffer`, advancing the reader index accordingly.
     ///
-    /// - returns: An instance of `MemcachedFlags` containing the flags read from the buffer.
+    /// - returns: A `MemcachedFlags` instance populated with the flags read from the buffer.
     mutating func readMemcachedFlags() -> MemcachedFlags {
-        var flagBytes: Set<UInt8> = []
+        var flags = MemcachedFlags()
         while let nextByte = self.readInteger(as: UInt8.self), nextByte != UInt8.whitespace {
-            flagBytes.insert(nextByte)
+            if nextByte == UInt8.v {
+                flags.shouldReturnValue = true
+            }
         }
-        return MemcachedFlags(flagBytes: flagBytes)
+        return flags
     }
 }

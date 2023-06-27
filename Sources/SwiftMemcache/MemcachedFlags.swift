@@ -45,5 +45,4 @@ struct MemcachedFlags {
     }
 }
 
-extension MemcachedFlags: Equatable {}
 extension MemcachedFlags: Hashable {}
