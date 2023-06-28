@@ -35,8 +35,8 @@ extension ByteBuffer {
         var value: UInt64 = 0
         while let digit = self.readInteger(as: UInt8.self) {
             switch digit {
-            case UInt8(ascii: "0")...UInt8(ascii: "9"):
-                value = value * 10 + UInt64(digit - UInt8(ascii: "0"))
+            case UInt8.zero...UInt8.nine:
+                value = value * 10 + UInt64(digit - UInt8.zero)
             case UInt8.whitespace, UInt8.carriageReturn:
                 return value
             default:

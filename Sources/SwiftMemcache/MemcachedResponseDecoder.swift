@@ -119,7 +119,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
 
         case .dataLength(let returnCode):
             if returnCode == .VA {
-                guard let dataLength = buffer.readInteger(as: UInt64.self) else {
+                guard let dataLength = buffer.readIntegerFromASCII() else {
                     return .waitForMoreBytes
                 }
 
