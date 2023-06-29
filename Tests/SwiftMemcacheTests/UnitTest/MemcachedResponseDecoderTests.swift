@@ -44,20 +44,11 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         }
 
         buffer.writeInteger(returnCode)
+        buffer.writeInteger(UInt8.whitespace)
 
         // Write the data length <size> to the buffer.
         if let dataLength = response.dataLength, response.returnCode == .VA {
-            buffer.writeInteger(dataLength)
-            buffer.writeInteger(UInt8.whitespace)
-
-            // Add flags after dataLength
-            if let flags = response.flags {
-                if let shouldReturnValue = flags.shouldReturnValue, shouldReturnValue, let byteValue = MemcachedFlags.flagToByte[\MemcachedFlags.shouldReturnValue] {
-                    buffer.writeInteger(byteValue)
-                    buffer.writeInteger(UInt8.whitespace)
-                }
-            }
-
+            buffer.writeIntegerAsASCII(dataLength)
             buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
 
             // Write the value <data block> to the buffer if it exists
@@ -69,7 +60,6 @@ final class MemcachedResponseDecoderTests: XCTestCase {
             buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
         }
 
-        buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
         return buffer
     }
 
@@ -118,7 +108,8 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         var valueBuffer = allocator.buffer(capacity: 8)
         valueBuffer.writeString("hi")
 
-        let flags = MemcachedFlags()
+        var flags = MemcachedFlags()
+        flags.shouldReturnValue = true
         let valueResponse = MemcachedResponse(returnCode: .VA, dataLength: 2, flags: flags, value: valueBuffer)
         var buffer = self.makeMemcachedResponseByteBuffer(from: valueResponse)
 

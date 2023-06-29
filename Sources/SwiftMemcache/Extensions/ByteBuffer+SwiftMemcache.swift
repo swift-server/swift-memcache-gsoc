@@ -27,27 +27,6 @@ extension ByteBuffer {
 }
 
 extension ByteBuffer {
-    /// Reads the ASCII representation of a non-negative integer from this buffer.
-    /// Whitespace or newline indicates the end of the integer.
-    ///
-    /// - returns: The integer, or `nil` if there's not enough readable bytes.
-    mutating func readIntegerFromASCII() -> UInt64? {
-        var value: UInt64 = 0
-        while let digit = self.readInteger(as: UInt8.self) {
-            switch digit {
-            case UInt8.zero...UInt8.nine:
-                value = value * 10 + UInt64(digit - UInt8.zero)
-            case UInt8.whitespace, UInt8.carriageReturn:
-                return value
-            default:
-                return nil
-            }
-        }
-        return nil
-    }
-}
-
-extension ByteBuffer {
     /// Serialize and writes MemcachedFlags to the ByteBuffer.
     ///
     /// This method runs a loop over the flags contained in a MemcachedFlags instance.
@@ -70,9 +49,18 @@ extension ByteBuffer {
     /// - returns: A `MemcachedFlags` instance populated with the flags read from the buffer.
     mutating func readMemcachedFlags() -> MemcachedFlags {
         var flags = MemcachedFlags()
-        while let nextByte = self.readInteger(as: UInt8.self), nextByte != UInt8.whitespace {
-            if nextByte == UInt8.v {
+        while let nextByte = self.readInteger(as: UInt8.self) {
+            switch nextByte {
+            case UInt8.v:
                 flags.shouldReturnValue = true
+            case UInt8.whitespace:
+                continue
+            case UInt8.carriageReturn:
+                guard let _ = self.readInteger(as: UInt8.self), self.readableBytes > 0 else {
+                    break
+                }
+            default:
+                preconditionFailure("Unrecognized flag.")
             }
         }
         return flags

@@ -75,7 +75,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         /// Decode the flags
         case flags(MemcachedResponse.ReturnCode, UInt64?)
         // TODO: Add a next step for decoding the response data if the return code is VA
-        case decodeValue(MemcachedResponse.ReturnCode, UInt64, MemcachedFlags)
+        case decodeValue(MemcachedResponse.ReturnCode, UInt64, MemcachedFlags?)
     }
 
     /// The action that the decoder will take in response to the current state of the ByteBuffer and the `NextStep`.
@@ -119,11 +119,35 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
 
         case .dataLength(let returnCode):
             if returnCode == .VA {
-                guard let dataLength = buffer.readIntegerFromASCII() else {
+                // Advance to the first non-whitespace character
+                while let currentByte = buffer.getInteger(at: buffer.readerIndex, as: UInt8.self), currentByte == UInt8.whitespace {
+                    buffer.moveReaderIndex(forwardBy: 1)
+                }
+
+                // Find the index of the next whitespace or carriage return
+                guard let endIndex = buffer.readableBytesView.firstIndex(where: { $0 == UInt8.whitespace || $0 == UInt8.carriageReturn }) else {
                     return .waitForMoreBytes
                 }
 
-                self.nextStep = .flags(returnCode, dataLength)
+                let lengthString = buffer.readString(length: endIndex - buffer.readerIndex)
+
+                guard let dataLength = UInt64(lengthString!) else {
+                    throw MemcachedDecoderError.unexpectedCharacter(buffer.readableBytesView[buffer.readerIndex])
+                }
+
+                // Skip over the whitespace or carriage return
+                buffer.moveReaderIndex(forwardBy: 1)
+
+                // Check if the next byte is newline and skip it too if it is
+                if buffer.getInteger(at: buffer.readerIndex) == UInt8.newline {
+                    buffer.moveReaderIndex(forwardBy: 1)
+                }
+
+                if buffer.getInteger(at: buffer.readerIndex) == UInt8.whitespace {
+                    self.nextStep = .flags(returnCode, dataLength)
+                } else {
+                    self.nextStep = .decodeValue(returnCode, dataLength, nil)
+                }
                 return .continueDecodeLoop
             } else {
                 self.nextStep = .flags(returnCode, nil)
