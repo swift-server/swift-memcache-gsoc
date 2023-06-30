@@ -24,14 +24,7 @@ struct MemcachedFlags {
     /// If false, the data block for the 'mg' response is optional, and the response code changes from "HD" to "VA <size>".
     var shouldReturnValue: Bool?
 
-    /// Maps key paths of this struct to their corresponding flag bytes.
-    static let flagToByte: [KeyPath<MemcachedFlags, Bool?>: UInt8] = [
-        \MemcachedFlags.shouldReturnValue: 0x76,
-    ]
-
-    init() {
-        self.shouldReturnValue = nil
-    }
+    init() {}
 
     init(flagBytes: Set<UInt8>) {
         for byte in flagBytes {

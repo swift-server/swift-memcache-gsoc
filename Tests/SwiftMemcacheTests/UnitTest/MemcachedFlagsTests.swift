@@ -16,8 +16,9 @@
 import XCTest
 
 final class MemcachedFlagsTests: XCTestCase {
-    func testVFlagBytes() {
-        let flags = MemcachedFlags(flagBytes: [0x76])
+    func testVFlag() {
+        var flags = MemcachedFlags()
+        flags.shouldReturnValue = true
         if let shouldReturnValue = flags.shouldReturnValue {
             XCTAssertTrue(shouldReturnValue)
         } else {
