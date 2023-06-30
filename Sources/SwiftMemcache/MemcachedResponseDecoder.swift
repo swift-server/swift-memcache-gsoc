@@ -74,7 +74,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         case dataLength(MemcachedResponse.ReturnCode)
         /// Decode the flags
         case flags(MemcachedResponse.ReturnCode, UInt64?)
-        // TODO: Add a next step for decoding the response data if the return code is VA
+        /// Decode the Value
         case decodeValue(MemcachedResponse.ReturnCode, UInt64, MemcachedFlags?)
     }
 
