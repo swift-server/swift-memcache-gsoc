@@ -27,6 +27,22 @@ extension ByteBuffer {
 }
 
 extension ByteBuffer {
+    /// Reads an integer from ASCII characters directly from this `ByteBuffer`.
+    /// The reading stops as soon as a non-digit character is encountered.
+    ///
+    /// - Returns: A `UInt64` integer read from the buffer.
+    /// If the buffer does not contain any digits at the current reading position, returns `nil`.
+    mutating func readIntegerFromASCII() -> UInt64? {
+        var value: UInt64 = 0
+        while self.readableBytes > 0, let currentByte = self.readInteger(as: UInt8.self),
+              currentByte >= UInt8.zero && currentByte <= UInt8.nine {
+            value = (value * 10) + UInt64(currentByte - UInt8.zero)
+        }
+        return value > 0 ? value : nil
+    }
+}
+
+extension ByteBuffer {
     /// Serialize and writes MemcachedFlags to the ByteBuffer.
     ///
     /// This method runs a loop over the flags contained in a MemcachedFlags instance.

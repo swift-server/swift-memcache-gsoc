@@ -124,30 +124,18 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
                     buffer.moveReaderIndex(forwardBy: 1)
                 }
 
-                // Find the index of the next whitespace or carriage return
-                guard let endIndex = buffer.readableBytesView.firstIndex(where: { $0 == UInt8.whitespace || $0 == UInt8.carriageReturn }) else {
-                    return .waitForMoreBytes
-                }
-
-                let lengthString = buffer.readString(length: endIndex - buffer.readerIndex)
-
-                guard let dataLength = UInt64(lengthString!) else {
+                guard let dataLength = buffer.readIntegerFromASCII() else {
                     throw MemcachedDecoderError.unexpectedCharacter(buffer.readableBytesView[buffer.readerIndex])
                 }
 
-                // Skip over the whitespace or carriage return
-                buffer.moveReaderIndex(forwardBy: 1)
-
-                // Check if the next byte is newline and skip it too if it is
-                if buffer.getInteger(at: buffer.readerIndex) == UInt8.newline {
+                // Skip over the whitespace, newline or carriage return
+                while let currentByte = buffer.getInteger(at: buffer.readerIndex, as: UInt8.self),
+                      [UInt8.whitespace, UInt8.newline, UInt8.carriageReturn].contains(currentByte) {
                     buffer.moveReaderIndex(forwardBy: 1)
                 }
 
-                if buffer.getInteger(at: buffer.readerIndex) == UInt8.whitespace {
-                    self.nextStep = .flags(returnCode, dataLength)
-                } else {
-                    self.nextStep = .decodeValue(returnCode, dataLength, nil)
-                }
+                let isNextByteWhitespace = buffer.getInteger(at: buffer.readerIndex) == UInt8.whitespace
+                self.nextStep = isNextByteWhitespace ? .flags(returnCode, dataLength) : .decodeValue(returnCode, dataLength, nil)
                 return .continueDecodeLoop
             } else {
                 self.nextStep = .flags(returnCode, nil)
