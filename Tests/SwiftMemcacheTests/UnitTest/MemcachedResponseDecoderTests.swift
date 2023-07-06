@@ -143,8 +143,10 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         let buffer = self.makeMemcachedResponseByteBuffer(from: valueResponse)
 
         // Split the buffer in two parts, the first of which does not end with "\r\n"
-        let splitIndex = buffer.readableBytes - 3
+        let splitIndex = buffer.readableBytes - 6
+        // VA 2
         var firstPartBuffer = buffer.getSlice(at: buffer.readerIndex, length: splitIndex)!
+        // \r\nhi\r\n
         var secondPartBuffer = buffer.getSlice(at: buffer.readerIndex + splitIndex, length: buffer.readableBytes - splitIndex)!
 
         // Try to decode the first part, which should return .waitForMoreBytes

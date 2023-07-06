@@ -108,10 +108,9 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
 
     mutating func next(buffer: inout ByteBuffer) throws -> NextDecodeAction {
         // Check if the buffer contains "\r\n"
-        guard buffer.readableBytes >= 2,
-              let lastTwoBytes = buffer.getBytes(at: buffer.writerIndex - 2, length: 2),
-              lastTwoBytes[0] == UInt8.carriageReturn,
-              lastTwoBytes[1] == UInt8.newline else {
+        let bytesView = buffer.readableBytesView
+        guard let crIndex = bytesView.firstIndex(of: UInt8.carriageReturn), bytesView.index(after: crIndex) < bytesView.endIndex,
+              bytesView[bytesView.index(after: crIndex)] == UInt8.newline else {
             return .waitForMoreBytes
         }
         switch self.nextStep {
@@ -147,9 +146,13 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
             }
 
         case .decodeFlag(let returnCode, let dataLength):
-            // Skip over the whitespace, newline or carriage return
-            while let currentByte = buffer.getInteger(at: buffer.readerIndex, as: UInt8.self),
-                  [UInt8.whitespace, UInt8.newline, UInt8.carriageReturn].contains(currentByte) {
+            if let nextByte = buffer.getInteger(at: buffer.readerIndex, as: UInt8.self), nextByte == UInt8.newline {
+                self.nextStep = .decodeValue(returnCode, dataLength!, MemcachedFlags())
+                buffer.moveReaderIndex(forwardBy: 1)
+                return .continueDecodeLoop
+            }
+
+            if let currentByte = buffer.getInteger(at: buffer.readerIndex, as: UInt8.self), currentByte == UInt8.whitespace {
                 buffer.moveReaderIndex(forwardBy: 1)
             }
 

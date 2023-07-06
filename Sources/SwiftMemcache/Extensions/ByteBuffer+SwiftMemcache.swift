@@ -71,21 +71,20 @@ extension ByteBuffer {
                 self.moveReaderIndex(forwardBy: 1)
                 continue
             case UInt8.carriageReturn:
-                guard let followingByte = self.getInteger(at: self.readerIndex, as: UInt8.self) else {
+                guard let followingByte = self.getInteger(at: self.readerIndex + 1, as: UInt8.self) else {
                     // We were expecting a newline after the carriage return, but didn't get it.
-                    return flags
+                    fatalError("Unexpected end of flags. Expected newline after carriage return.")
                 }
                 if followingByte == UInt8.newline {
-                    self.moveReaderIndex(forwardBy: 1)
+                    self.moveReaderIndex(forwardBy: 2)
                 } else {
-                    // If it wasn't a newline, it could be the start of the data block.
-                    return flags
+                    // If it wasn't a newline, it is something unexpected.
+                    fatalError("Unexpected character in flags. Expected newline after carriage return.")
                 }
             default:
-                // Encountered a character we weren't expecting. This could be the start of the data block.
-                return flags
+                // Encountered a character we weren't expecting. This should be a fatal error.
+                fatalError("Unexpected character in flags.")
             }
-            self.moveReaderIndex(forwardBy: 1)
         }
         return flags
     }
