@@ -42,6 +42,22 @@ struct MemcachedRequestEncoder: MessageToByteEncoder {
             out.writeBuffer(&command.value)
             out.writeInteger(UInt8.carriageReturn)
             out.writeInteger(UInt8.newline)
+
+        case .get(let command):
+            precondition(!command.key.isEmpty, "Key must not be empty")
+
+            // write command and key
+            out.writeInteger(UInt8.m)
+            out.writeInteger(UInt8.g)
+            out.writeInteger(UInt8.whitespace)
+            out.writeBytes(command.key.utf8)
+
+            // write flags if there are any
+            out.writeMemcachedFlags(flags: command.flags)
+
+            // write separator
+            out.writeInteger(UInt8.carriageReturn)
+            out.writeInteger(UInt8.newline)
         }
     }
 }

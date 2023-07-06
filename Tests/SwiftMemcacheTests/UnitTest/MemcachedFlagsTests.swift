@@ -12,14 +12,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-enum MemcachedFlag {
-    /// v: return item value in <data block>
-    case v
+@testable import SwiftMemcache
+import XCTest
 
-    var bytes: UInt8 {
-        switch self {
-        case .v:
-            return 0x76
+final class MemcachedFlagsTests: XCTestCase {
+    func testVFlag() {
+        var flags = MemcachedFlags()
+        flags.shouldReturnValue = true
+        if let shouldReturnValue = flags.shouldReturnValue {
+            XCTAssertTrue(shouldReturnValue)
+        } else {
+            XCTFail("Flag shouldReturnValue is nil")
         }
     }
 }
