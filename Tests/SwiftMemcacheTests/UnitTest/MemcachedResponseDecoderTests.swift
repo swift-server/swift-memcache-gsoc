@@ -108,8 +108,7 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         var valueBuffer = allocator.buffer(capacity: 8)
         valueBuffer.writeString("hi")
 
-        var flags = MemcachedFlags()
-        flags.shouldReturnValue = true
+        let flags = MemcachedFlags()
         let valueResponse = MemcachedResponse(returnCode: .VA, dataLength: 2, flags: flags, value: valueBuffer)
         var buffer = self.makeMemcachedResponseByteBuffer(from: valueResponse)
 

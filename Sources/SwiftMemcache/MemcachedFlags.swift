@@ -25,17 +25,6 @@ struct MemcachedFlags {
     var shouldReturnValue: Bool?
 
     init() {}
-
-    init(flagBytes: Set<UInt8>) {
-        for byte in flagBytes {
-            switch byte {
-            case 0x76:
-                self.shouldReturnValue = true
-            default:
-                preconditionFailure("Unrecognized flag.")
-            }
-        }
-    }
 }
 
 extension MemcachedFlags: Hashable {}

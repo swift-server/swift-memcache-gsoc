@@ -64,20 +64,28 @@ extension ByteBuffer {
     ///
     /// - returns: A `MemcachedFlags` instance populated with the flags read from the buffer.
     mutating func readMemcachedFlags() -> MemcachedFlags {
-        var flags = MemcachedFlags()
-        while let nextByte = self.readInteger(as: UInt8.self) {
+        let flags = MemcachedFlags()
+        while let nextByte = self.getInteger(at: self.readerIndex, as: UInt8.self) {
             switch nextByte {
-            case UInt8.v:
-                flags.shouldReturnValue = true
             case UInt8.whitespace:
+                self.moveReaderIndex(forwardBy: 1)
                 continue
             case UInt8.carriageReturn:
-                guard let _ = self.readInteger(as: UInt8.self), self.readableBytes > 0 else {
-                    break
+                guard let followingByte = self.getInteger(at: self.readerIndex, as: UInt8.self) else {
+                    // We were expecting a newline after the carriage return, but didn't get it.
+                    return flags
+                }
+                if followingByte == UInt8.newline {
+                    self.moveReaderIndex(forwardBy: 1)
+                } else {
+                    // If it wasn't a newline, it could be the start of the data block.
+                    return flags
                 }
             default:
-                preconditionFailure("Unrecognized flag.")
+                // Encountered a character we weren't expecting. This could be the start of the data block.
+                return flags
             }
+            self.moveReaderIndex(forwardBy: 1)
         }
         return flags
     }

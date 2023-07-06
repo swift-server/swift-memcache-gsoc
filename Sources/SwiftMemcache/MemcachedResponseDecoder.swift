@@ -73,9 +73,9 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         /// Decode the data length
         case dataLength(MemcachedResponse.ReturnCode)
         /// Decode the flags
-        case flags(MemcachedResponse.ReturnCode, UInt64?)
+        case decodeFlags(MemcachedResponse.ReturnCode, UInt64?)
         /// Decode the Value
-        case decodeValue(MemcachedResponse.ReturnCode, UInt64, MemcachedFlags?)
+        case decodeValue(MemcachedResponse.ReturnCode, UInt64, MemcachedFlags)
     }
 
     /// The action that the decoder will take in response to the current state of the ByteBuffer and the `NextStep`.
@@ -119,8 +119,12 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
 
         case .dataLength(let returnCode):
             if returnCode == .VA {
-                // Advance to the first non-whitespace character
-                while let currentByte = buffer.getInteger(at: buffer.readerIndex, as: UInt8.self), currentByte == UInt8.whitespace {
+                // Check if we have at least one whitespace in the buffer.
+                guard buffer.readableBytesView.contains(UInt8.whitespace) else {
+                    return .waitForMoreBytes
+                }
+
+                if let currentByte = buffer.getInteger(at: buffer.readerIndex, as: UInt8.self), currentByte == UInt8.whitespace {
                     buffer.moveReaderIndex(forwardBy: 1)
                 }
 
@@ -128,27 +132,27 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
                     throw MemcachedDecoderError.unexpectedCharacter(buffer.readableBytesView[buffer.readerIndex])
                 }
 
-                // Skip over the whitespace, newline or carriage return
-                while let currentByte = buffer.getInteger(at: buffer.readerIndex, as: UInt8.self),
-                      [UInt8.whitespace, UInt8.newline, UInt8.carriageReturn].contains(currentByte) {
-                    buffer.moveReaderIndex(forwardBy: 1)
-                }
-
-                let isNextByteWhitespace = buffer.getInteger(at: buffer.readerIndex) == UInt8.whitespace
-                self.nextStep = isNextByteWhitespace ? .flags(returnCode, dataLength) : .decodeValue(returnCode, dataLength, nil)
+                self.nextStep = .decodeFlags(returnCode, dataLength)
                 return .continueDecodeLoop
             } else {
-                self.nextStep = .flags(returnCode, nil)
+                self.nextStep = .decodeFlags(returnCode, nil)
                 return .continueDecodeLoop
             }
 
-        case .flags(let returnCode, let dataLength):
+        case .decodeFlags(let returnCode, let dataLength):
+            // Skip over the whitespace, newline or carriage return
+            while let currentByte = buffer.getInteger(at: buffer.readerIndex, as: UInt8.self),
+                  [UInt8.whitespace, UInt8.newline, UInt8.carriageReturn].contains(currentByte) {
+                buffer.moveReaderIndex(forwardBy: 1)
+            }
+
             let flags = buffer.readMemcachedFlags()
-            if flags.shouldReturnValue == true {
+
+            if returnCode == .VA {
                 self.nextStep = .decodeValue(returnCode, dataLength!, flags)
                 return .continueDecodeLoop
             } else {
-                let response = MemcachedResponse(returnCode: returnCode, dataLength: dataLength, flags: flags)
+                let response = MemcachedResponse(returnCode: returnCode, dataLength: dataLength, flags: flags, value: nil)
                 self.nextStep = .returnCode
                 return .returnDecodedResponse(response)
             }
