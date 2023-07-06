@@ -56,9 +56,8 @@ final class MemcachedResponseDecoderTests: XCTestCase {
                 var mutableValue = value
                 buffer.writeBuffer(&mutableValue)
             }
-
-            buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
         }
+        buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
 
         return buffer
     }

@@ -107,6 +107,11 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
     }
 
     mutating func next(buffer: inout ByteBuffer) throws -> NextDecodeAction {
+        // Check if the buffer contains "\r\n"
+        let bytesView = buffer.readableBytesView
+        guard bytesView.contains(UInt8.carriageReturn), bytesView.contains(UInt8.newline) else {
+            return .waitForMoreBytes
+        }
         switch self.nextStep {
         case .returnCode:
             guard let bytes = buffer.readInteger(as: UInt16.self) else {
