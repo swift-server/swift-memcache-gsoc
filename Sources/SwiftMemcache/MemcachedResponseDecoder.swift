@@ -206,24 +206,3 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         }
     }
 }
-
-extension Sequence<UInt8> {
-    func contains(_ sequence: [Element]) -> Bool {
-        let sequenceCount = sequence.count
-        guard sequenceCount > 0,
-              let firstByte = sequence.first,
-              let selfCount = self as? any Collection else {
-            return false
-        }
-
-        for (index, element) in self.enumerated() {
-            guard element == firstByte,
-                  selfCount.count >= index + sequenceCount,
-                  self.dropFirst(index).prefix(sequenceCount).elementsEqual(sequence) else {
-                continue
-            }
-            return true
-        }
-        return false
-    }
-}
