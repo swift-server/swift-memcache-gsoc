@@ -73,7 +73,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         /// Decode the data length
         case dataLength(MemcachedResponse.ReturnCode)
         /// Decode the flags
-        case decodeFlags(MemcachedResponse.ReturnCode, UInt64?)
+        case decodeFlag(MemcachedResponse.ReturnCode, UInt64?)
         /// Decode the Value
         case decodeValue(MemcachedResponse.ReturnCode, UInt64, MemcachedFlags)
     }
@@ -132,14 +132,14 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
                     throw MemcachedDecoderError.unexpectedCharacter(buffer.readableBytesView[buffer.readerIndex])
                 }
 
-                self.nextStep = .decodeFlags(returnCode, dataLength)
+                self.nextStep = .decodeFlag(returnCode, dataLength)
                 return .continueDecodeLoop
             } else {
-                self.nextStep = .decodeFlags(returnCode, nil)
+                self.nextStep = .decodeFlag(returnCode, nil)
                 return .continueDecodeLoop
             }
 
-        case .decodeFlags(let returnCode, let dataLength):
+        case .decodeFlag(let returnCode, let dataLength):
             // Skip over the whitespace, newline or carriage return
             while let currentByte = buffer.getInteger(at: buffer.readerIndex, as: UInt8.self),
                   [UInt8.whitespace, UInt8.newline, UInt8.carriageReturn].contains(currentByte) {
