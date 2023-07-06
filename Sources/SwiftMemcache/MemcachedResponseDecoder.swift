@@ -109,9 +109,10 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
     mutating func next(buffer: inout ByteBuffer) throws -> NextDecodeAction {
         // Check if the buffer contains "\r\n"
         let bytesView = buffer.readableBytesView
-        guard bytesView.contains(UInt8.carriageReturn), bytesView.contains(UInt8.newline) else {
+        guard bytesView.suffix(2).elementsEqual([UInt8.carriageReturn, UInt8.newline]) else {
             return .waitForMoreBytes
         }
+
         switch self.nextStep {
         case .returnCode:
             guard let bytes = buffer.readInteger(as: UInt16.self) else {
@@ -203,5 +204,26 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         default:
             throw MemcachedDecoderError.unexpectedNextStep(self.nextStep)
         }
+    }
+}
+
+extension Sequence<UInt8> {
+    func contains(_ sequence: [Element]) -> Bool {
+        let sequenceCount = sequence.count
+        guard sequenceCount > 0,
+              let firstByte = sequence.first,
+              let selfCount = self as? any Collection else {
+            return false
+        }
+
+        for (index, element) in self.enumerated() {
+            guard element == firstByte,
+                  selfCount.count >= index + sequenceCount,
+                  self.dropFirst(index).prefix(sequenceCount).elementsEqual(sequence) else {
+                continue
+            }
+            return true
+        }
+        return false
     }
 }
