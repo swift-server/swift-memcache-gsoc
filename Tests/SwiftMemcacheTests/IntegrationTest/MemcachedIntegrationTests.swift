@@ -84,4 +84,25 @@ final class MemcachedIntegrationTest: XCTestCase {
             XCTFail("Failed to connect to Memcached server: \(error)")
         }
     }
+    
+    func testMemcachedConnectionActor() async throws {
+        do {
+            let memcachedConnection = try await MemcachedConnection(host: "memcached", port: 11211)
+
+            let key = "fot"
+            let expectedValue = "bas"
+
+            // Set the value
+            let setResult = try await memcachedConnection.set(key, value: expectedValue)
+            XCTAssertTrue(setResult, "Failed to set the value for key \(key)")
+
+            // Get the value
+            let actualValue = try await memcachedConnection.get(key)
+            XCTAssertNotNil(actualValue, "The value for key \(key) is nil")
+            XCTAssertEqual(expectedValue, actualValue, "The value for key \(key) is not what was expected")
+
+        } catch {
+            XCTFail("Failed with error: \(error)")
+        }
+    }
 }
