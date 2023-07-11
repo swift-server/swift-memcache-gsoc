@@ -11,80 +11,64 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
+@_spi(AsyncChannel)
 
 import NIOCore
 import NIOPosix
 
 public actor MemcachedConnection {
-    private let channel: Channel
+    private let channel: NIOAsyncChannel<ByteBuffer, ByteBuffer>
+    private let bufferAllocator: ByteBufferAllocator
+    private let group: MultiThreadedEventLoopGroup
     
-    public init(host: String, port: Int) async throws {
-        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        let bootstrap = ClientBootstrap(group: group)
-            .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
-            .channelInitializer { channel in
-                let promise = channel.eventLoop.makePromise(of: MemcachedResponse.self)
-                let responseHandler = ResponseHandler(p: promise)
-                return channel.pipeline.addHandlers([MessageToByteHandler(MemcachedRequestEncoder()), ByteToMessageHandler(MemcachedResponseDecoder()), responseHandler])
-            }
+    public init(host: String, port: Int, group: MultiThreadedEventLoopGroup) async throws {
+            self.group = group
+            let bootstrap = ClientBootstrap(group: self.group)
+                .channelInitializer { channel in
+                    return channel.pipeline.addHandlers([MessageToByteHandler(MemcachedRequestEncoder()), ByteToMessageHandler(MemcachedResponseDecoder())])
+                }
 
-        self.channel = try await bootstrap.connect(host: host, port: port).get()
+            let rawChannel = try await bootstrap.connect(host: host, port: port).get()
+            self.channel = try NIOAsyncChannel(synchronouslyWrapping: rawChannel, inboundType: ByteBuffer.self, outboundType: ByteBuffer.self)
+        
+        self.bufferAllocator = ByteBufferAllocator()
     }
 
 
-    public func get(_ key: String) async throws -> String? {
-        // Prepare a MemcachedRequest
+    public func get(_ key: String) async throws -> ByteBuffer? {
         var flags = MemcachedFlags()
         flags.shouldReturnValue = true
         let command = MemcachedRequest.GetCommand(key: key, flags: flags)
         let request = MemcachedRequest.get(command)
 
-        // Write the request to the connection
-        try await self.channel.writeAndFlush(request)
+        var buffer = self.bufferAllocator.buffer(capacity: 0)
+        let encoder = MemcachedRequestEncoder()
+        try encoder.encode(data: request, out: &buffer)
+        try await self.channel.outboundWriter.write(buffer)
 
-        // Wait for the response from the server
-        let response = try await self.channel.pipeline.handler(type: ResponseHandler.self).get().p.futureResult.get()
-
-        // Extract the value from the response
-        guard response.returnCode == .HD, let data = response.value else {
-            return nil
+        let responseBuffer = try await self.channel.inboundStream.first(where: { _ in true })
+        if responseBuffer == nil || responseBuffer?.readableBytes == 0 {
+                fatalError("Received error response from the server.")
         }
-        return data.getString(at: data.readerIndex, length: data.readableBytes)
+        return responseBuffer
     }
 
 
-    public func set(_ key: String, value: String) async throws -> Bool {
-        // Prepare a MemcachedRequest
-        var buffer = ByteBufferAllocator().buffer(capacity: value.count)
+    public func set(_ key: String, value: String) async throws -> ByteBuffer? {
+        var buffer = self.bufferAllocator.buffer(capacity: value.count)
         buffer.writeString(value)
         let command = MemcachedRequest.SetCommand(key: key, value: buffer)
         let request = MemcachedRequest.set(command)
 
-        // Write the request to the connection
-        try await self.channel.writeAndFlush(request)
+        var writeBuffer = self.bufferAllocator.buffer(capacity: 0)
+        let encoder = MemcachedRequestEncoder()
+        try encoder.encode(data: request, out: &writeBuffer)
+        try await self.channel.outboundWriter.write(writeBuffer)
 
-        // Wait for the response from the server
-        let response = try await self.channel.pipeline.handler(type: ResponseHandler.self).get().p.futureResult.get()
-
-        // Check the response from the server.
-        return response.returnCode == .HD
-    }
-
-
-    // Response handler
-    private class ResponseHandler: ChannelInboundHandler {
-        typealias InboundIn = MemcachedResponse
-
-        let p: EventLoopPromise<MemcachedResponse>
-
-        init(p: EventLoopPromise<MemcachedResponse>) {
-            self.p = p
+        let responseBuffer = try await self.channel.inboundStream.first { _ in true }
+        if responseBuffer == nil || responseBuffer?.readableBytes == 0 {
+                fatalError("Received error response from the server.")
         }
-
-        func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-            let response = self.unwrapInboundIn(data)
-            self.p.succeed(response)
-        }
+        return responseBuffer
     }
 }
-

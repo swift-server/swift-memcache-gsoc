@@ -87,18 +87,24 @@ final class MemcachedIntegrationTest: XCTestCase {
     
     func testMemcachedConnectionActor() async throws {
         do {
-            let memcachedConnection = try await MemcachedConnection(host: "memcached", port: 11211)
+            let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+            let memcachedConnection = try await MemcachedConnection(host: "memcached", port: 11211, group: group)
 
-            let key = "fot"
-            let expectedValue = "bas"
+            let key = "boo"
+            let expectedValue = "hi"
 
             // Set the value
-            let setResult = try await memcachedConnection.set(key, value: expectedValue)
-            XCTAssertTrue(setResult, "Failed to set the value for key \(key)")
+            let setResponseBuffer = try await memcachedConnection.set(key, value: expectedValue)
+            // log or check the setResponseBuffer according to your needs
+            print("Set response: \(setResponseBuffer?.readableBytes ?? 0) bytes")
 
             // Get the value
-            let actualValue = try await memcachedConnection.get(key)
-            XCTAssertNotNil(actualValue, "The value for key \(key) is nil")
+            var actualValueBuffer = try await memcachedConnection.get(key)
+            XCTAssertNotNil(actualValueBuffer, "The value for key \(key) is nil")
+
+            // read string from buffer, using the number of readable bytes as length
+            let bufferLength = actualValueBuffer?.readableBytes
+            let actualValue = actualValueBuffer?.readString(length: bufferLength!)
             XCTAssertEqual(expectedValue, actualValue, "The value for key \(key) is not what was expected")
 
         } catch {
