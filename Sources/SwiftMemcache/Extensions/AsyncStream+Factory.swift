@@ -24,7 +24,7 @@
 ///
 /// - Returns: A tuple containing the created `AsyncStream` and its corresponding `Continuation`.
 extension AsyncStream {
-    fileprivate static func makeStream(
+    internal static func makeStream(
         of elementType: Element.Type = Element.self,
         bufferingPolicy limit: Continuation.BufferingPolicy = .unbounded
     ) -> (stream: AsyncStream<Element>, continuation: AsyncStream<Element>.Continuation) {

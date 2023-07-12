@@ -22,7 +22,7 @@ import NIOPosix
 public actor MemcachedConnection {
     private typealias StreamElement = (MemcachedRequest, CheckedContinuation<MemcachedResponse, Error>)
     /// The underlying channel to communicate with the server.
-    private let channel: NIOAsyncChannel<ByteBuffer, ByteBuffer>
+    private let channel: NIOAsyncChannel<MemcachedResponse, MemcachedRequest>
     /// The allocator used to create new buffers.
     private let bufferAllocator: ByteBufferAllocator
     /// The channel's event loop group.
@@ -46,7 +46,7 @@ public actor MemcachedConnection {
             }
 
         let rawChannel = try await bootstrap.connect(host: host, port: port).get()
-        self.channel = try NIOAsyncChannel<ByteBuffer, ByteBuffer>(synchronouslyWrapping: rawChannel)
+        self.channel = try NIOAsyncChannel<MemcachedResponse, MemcachedRequest>(synchronouslyWrapping: rawChannel)
         self.bufferAllocator = ByteBufferAllocator()
 
         let (stream, continuation) = AsyncStream<StreamElement>.makeStream()
@@ -59,19 +59,14 @@ public actor MemcachedConnection {
     /// This function starts consuming the requests from the `requestStream`,
     /// sending each request to the Memcache server and handling the server's responses.
     public func run() async {
+        var iterator = self.channel.inboundStream.makeAsyncIterator()
         for await (request, continuation) in self.requestStream {
-            var buffer = self.bufferAllocator.buffer(capacity: 0)
-            let encoder = MemcachedRequestEncoder()
             do {
-                try encoder.encode(data: request, out: &buffer)
-                try await self.channel.outboundWriter.write(buffer)
+                try await self.channel.outboundWriter.write(request)
+                let responseBuffer = try await iterator.next()
 
-                let responseBuffer = try await self.channel.inboundStream.first { _ in true }
-
-                if var responseBuffer, responseBuffer.readableBytes != 0 {
-                    var decoder = MemcachedResponseDecoder()
-                    let response = try decoder.decode(buffer: &responseBuffer)
-                    continuation.resume(returning: response!)
+                if let response = responseBuffer {
+                    continuation.resume(returning: response)
                 }
             } catch {
                 continuation.resume(throwing: error)
