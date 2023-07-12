@@ -39,7 +39,6 @@ public actor MemcachedConnection {
     ///   - port: The port number of the Memcache server.
     ///   - eventLoopGroup: The event loop group to use for this connection.
     public init(host: String, port: Int, eventLoopGroup: EventLoopGroup) async throws {
-        print("yes")
         self.eventLoopGroup = eventLoopGroup
         let bootstrap = ClientBootstrap(group: self.eventLoopGroup)
             .channelInitializer { channel in
