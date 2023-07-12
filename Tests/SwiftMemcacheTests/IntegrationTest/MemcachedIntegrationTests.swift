@@ -84,31 +84,26 @@ final class MemcachedIntegrationTest: XCTestCase {
             XCTFail("Failed to connect to Memcached server: \(error)")
         }
     }
-    
+
     func testMemcachedConnectionActor() async throws {
-        do {
-            let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-            let memcachedConnection = try await MemcachedConnection(host: "memcached", port: 11211, group: group)
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        let memcachedConnection = try await MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
-            let key = "boo"
-            let expectedValue = "hi"
+        let key = "boo"
+        let expectedValue = "hi"
 
-            // Set the value
-            let setResponseBuffer = try await memcachedConnection.set(key, value: expectedValue)
-            // log or check the setResponseBuffer according to your needs
-            print("Set response: \(setResponseBuffer?.readableBytes ?? 0) bytes")
+        // Set the value
+        let setResponseBuffer = try await memcachedConnection.set(key, value: expectedValue)
+        // log or check the setResponseBuffer according to your needs
+        print("Set response: \(setResponseBuffer?.readableBytes ?? 0) bytes")
 
-            // Get the value
-            var actualValueBuffer = try await memcachedConnection.get(key)
-            XCTAssertNotNil(actualValueBuffer, "The value for key \(key) is nil")
+        // Get the value
+        var actualValueBuffer = try await memcachedConnection.get(key)
+        XCTAssertNotNil(actualValueBuffer, "The value for key \(key) is nil")
 
-            // read string from buffer, using the number of readable bytes as length
-            let bufferLength = actualValueBuffer?.readableBytes
-            let actualValue = actualValueBuffer?.readString(length: bufferLength!)
-            XCTAssertEqual(expectedValue, actualValue, "The value for key \(key) is not what was expected")
-
-        } catch {
-            XCTFail("Failed with error: \(error)")
-        }
+        // read string from buffer, using the number of readable bytes as length
+        let bufferLength = actualValueBuffer?.readableBytes
+        let actualValue = actualValueBuffer?.readString(length: bufferLength!)
+        XCTAssertEqual(expectedValue, actualValue, "The value for key \(key) is not what was expected")
     }
 }
