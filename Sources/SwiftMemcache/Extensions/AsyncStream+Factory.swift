@@ -12,8 +12,19 @@
 //
 //===----------------------------------------------------------------------===//
 
+/// `AsyncStream` extension to facilitate creating an `AsyncStream` along with its corresponding `Continuation`.
+///
+/// This extension creates an `AsyncStream` and returns it along with its corresponding `Continuation`.
+/// A common usage pattern involves yielding requests and a `CheckedContinuation` via `withCheckedThrowingContinuation`
+/// to the `AsyncStream`'s `Continuation`.
+///
+/// - Parameters:
+///   - elementType: The type of element that the stream handles. By default, this is the `Element` type that the `AsyncStream` is initialized with.
+///   - limit: The buffering limit that the stream should use. By default, this is `.unbounded`.
+///
+/// - Returns: A tuple containing the created `AsyncStream` and its corresponding `Continuation`.
 extension AsyncStream {
-    static func makeStream(
+    fileprivate static func makeStream(
         of elementType: Element.Type = Element.self,
         bufferingPolicy limit: Continuation.BufferingPolicy = .unbounded
     ) -> (stream: AsyncStream<Element>, continuation: AsyncStream<Element>.Continuation) {
