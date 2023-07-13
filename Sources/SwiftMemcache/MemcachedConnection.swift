@@ -144,13 +144,13 @@ public actor MemcachedConnection {
     ///   - key: The key to set the value for.
     ///   - value: The value to set for the key.
     /// - Returns: A `ByteBuffer` containing the server's response to the set request.
-    public func set(_ key: String, value: String) async throws -> ByteBuffer? {
+    public func set(_ key: String, value: some MemcachedValue) async throws -> ByteBuffer? {
         guard case .running(let bufferAllocator, _, let requestContinuation) = self.connectionState else {
             throw MemcachedConnectionError.connectionFinished
         }
 
-        var buffer = bufferAllocator.buffer(capacity: value.count)
-        buffer.writeString(value)
+        var buffer = bufferAllocator.buffer(capacity: 0)
+        value.writeToBuffer(&buffer)
         let command = MemcachedRequest.SetCommand(key: key, value: buffer)
         let request = MemcachedRequest.set(command)
 
