@@ -44,7 +44,7 @@ public actor MemcachedConnection {
     }
 
     /// Enum representing the possible errors that can be encountered in `MemcachedConnection`.
-    public enum MemcachedConnectionError: Error {
+    enum MemcachedConnectionError: Error {
         /// Indicates that the connection to the server has finished.
         case connectionFinished
         /// Indicates that the request has been dropped because the buffer was full.
