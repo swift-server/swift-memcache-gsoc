@@ -54,4 +54,3 @@ extension UInt16: MemcachedValue {}
 extension UInt32: MemcachedValue {}
 extension UInt64: MemcachedValue {}
 extension String: MemcachedValue {}
-
