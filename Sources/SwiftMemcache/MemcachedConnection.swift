@@ -25,7 +25,7 @@ public actor MemcachedConnection {
     private let channel: NIOAsyncChannel<MemcachedResponse, MemcachedRequest>
     /// The channel's event loop group.
     private let eventLoopGroup: EventLoopGroup
-    
+
     /// Enum representing the current state of the MemcachedConnection.
     ///
     /// The ConnectionState is either running or finished, depending on whether the connection
@@ -42,17 +42,19 @@ public actor MemcachedConnection {
         )
         case finished
     }
-    
-    /// Error type thrown by MemcachedConnection when the connection has finished.
-    ///
-    /// This error is thrown when an attempt is made to perform an operation on
-    /// a connection that is no longer active.
-    enum MemcachedConnectionError: Error {
+
+    /// Enum representing the possible errors that can be encountered in `MemcachedConnection`.
+    public enum MemcachedConnectionError: Error {
+        /// Indicates that the connection to the server has finished.
         case connectionFinished
+        /// Indicates that the request has been dropped because the buffer was full.
+        case requestDropped
+        /// Indicates that the request was not enqueued because the stream was in a terminal state.
+        case requestStreamTerminated
     }
 
     private var connectionState: ConnectionState
-    
+
     /// Initialize a new MemcachedConnection.
     ///
     /// - Parameters:
@@ -116,14 +118,23 @@ public actor MemcachedConnection {
         guard case .running(_, _, let requestContinuation) = self.connectionState else {
             throw MemcachedConnectionError.connectionFinished
         }
-        
+
         var flags = MemcachedFlags()
         flags.shouldReturnValue = true
         let command = MemcachedRequest.GetCommand(key: key, flags: flags)
         let request = MemcachedRequest.get(command)
 
         return try await withCheckedThrowingContinuation { continuation in
-            requestContinuation.yield((request, continuation))
+            switch requestContinuation.yield((request, continuation)) {
+            case .enqueued:
+                break
+            case .dropped:
+                continuation.resume(throwing: MemcachedConnectionError.requestDropped)
+            case .terminated:
+                continuation.resume(throwing: MemcachedConnectionError.requestStreamTerminated)
+            default:
+                break
+            }
         }.value
     }
 
@@ -144,7 +155,16 @@ public actor MemcachedConnection {
         let request = MemcachedRequest.set(command)
 
         return try await withCheckedThrowingContinuation { continuation in
-            requestContinuation.yield((request, continuation))
+            switch requestContinuation.yield((request, continuation)) {
+            case .enqueued:
+                break
+            case .dropped:
+                continuation.resume(throwing: MemcachedConnectionError.requestDropped)
+            case .terminated:
+                continuation.resume(throwing: MemcachedConnectionError.requestStreamTerminated)
+            default:
+                break
+            }
         }.value
     }
 }
