@@ -22,7 +22,7 @@ import NIOPosix
 public actor MemcachedConnection {
     private typealias StreamElement = (MemcachedRequest, CheckedContinuation<MemcachedResponse, Error>)
     /// The underlying channel to communicate with the server.
-    private let channel: NIOAsyncChannel<MemcachedResponse, MemcachedRequest>
+    private var channel: NIOAsyncChannel<MemcachedResponse, MemcachedRequest>
     /// The allocator used to create new buffers.
     private let bufferAllocator: ByteBufferAllocator
     /// The channel's event loop group.
@@ -46,7 +46,11 @@ public actor MemcachedConnection {
             }
 
         let rawChannel = try await bootstrap.connect(host: host, port: port).get()
-        self.channel = try NIOAsyncChannel<MemcachedResponse, MemcachedRequest>(synchronouslyWrapping: rawChannel)
+
+        self.channel = try await eventLoopGroup.next().submit { () -> NIOAsyncChannel<MemcachedResponse, MemcachedRequest> in
+            return try NIOAsyncChannel<MemcachedResponse, MemcachedRequest>(synchronouslyWrapping: rawChannel)
+        }.get()
+
         self.bufferAllocator = ByteBufferAllocator()
 
         let (stream, continuation) = AsyncStream<StreamElement>.makeStream()

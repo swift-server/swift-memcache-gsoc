@@ -86,24 +86,19 @@ final class MemcachedIntegrationTest: XCTestCase {
     }
 
     func testMemcachedConnectionActor() async throws {
-        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        let memcachedConnection = try await MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let connectionActor = try await MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: self.group)
+        Task {
+            await connectionActor.run()
+        }
 
-        let key = "boo"
-        let expectedValue = "hi"
+        let setValue = "foo"
+        var setBuffer = ByteBufferAllocator().buffer(capacity: setValue.count)
+        setBuffer.writeString(setValue)
+        let _ = try await connectionActor.set("bar", value: setValue)
 
-        // Set the value
-        let setResponseBuffer = try await memcachedConnection.set(key, value: expectedValue)
-        // log or check the setResponseBuffer according to your needs
-        print("Set response: \(setResponseBuffer?.readableBytes ?? 0) bytes")
-
-        // Get the value
-        var actualValueBuffer = try await memcachedConnection.get(key)
-        XCTAssertNotNil(actualValueBuffer, "The value for key \(key) is nil")
-
-        // read string from buffer, using the number of readable bytes as length
-        let bufferLength = actualValueBuffer?.readableBytes
-        let actualValue = actualValueBuffer?.readString(length: bufferLength!)
-        XCTAssertEqual(expectedValue, actualValue, "The value for key \(key) is not what was expected")
+        // Get value for key
+        let getValue = try await connectionActor.get("bar")
+        let getValueString = getValue?.getString(at: getValue!.readerIndex, length: getValue!.readableBytes)
+        XCTAssertEqual(getValueString, setValue, "Received value should be the same as sent")
     }
 }
