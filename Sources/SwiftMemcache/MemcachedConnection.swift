@@ -22,7 +22,7 @@ import NIOPosix
 public actor MemcachedConnection {
     private typealias StreamElement = (MemcachedRequest, CheckedContinuation<MemcachedResponse, Error>)
     /// The underlying channel to communicate with the server.
-    private var channel: NIOAsyncChannel<MemcachedResponse, MemcachedRequest>
+    private let channel: NIOAsyncChannel<MemcachedResponse, MemcachedRequest>
     /// The allocator used to create new buffers.
     private let bufferAllocator: ByteBufferAllocator
     /// The channel's event loop group.
