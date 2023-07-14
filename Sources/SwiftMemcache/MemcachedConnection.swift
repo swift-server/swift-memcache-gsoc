@@ -21,20 +21,22 @@ import NIOPosix
 /// This actor can be used to send commands to the server.
 public actor MemcachedConnection {
     private typealias StreamElement = (MemcachedRequest, CheckedContinuation<MemcachedResponse, Error>)
-    /// The underlying channel to communicate with the server.
-    private let channel: NIOAsyncChannel<MemcachedResponse, MemcachedRequest>
-    /// The channel's event loop group.
-    private let eventLoopGroup: EventLoopGroup
+    private let host: String
+    private let port: Int
 
     /// Enum representing the current state of the MemcachedConnection.
     ///
-    /// The ConnectionState is either running or finished, depending on whether the connection
+    /// The State is either initial, running or finished, depending on whether the connection
     /// to the server is active or has been closed. When running, it contains the properties
     /// for the buffer allocator, request stream, and the stream's continuation.
-    private enum ConnectionState {
+    private enum State {
+        case initial(eventLoopGroup: EventLoopGroup)
+
         case running(
             /// The allocator used to create new buffers.
             bufferAllocator: ByteBufferAllocator,
+            /// The underlying channel to communicate with the server.
+            channel: NIOAsyncChannel<MemcachedResponse, MemcachedRequest>,
             /// The stream of requests to be sent to the server.
             requestStream: AsyncStream<StreamElement>,
             /// The continuation for the request stream.
@@ -45,15 +47,11 @@ public actor MemcachedConnection {
 
     /// Enum representing the possible errors that can be encountered in `MemcachedConnection`.
     enum MemcachedConnectionError: Error {
-        /// Indicates that the connection to the server has finished.
-        case connectionFinished
-        /// Indicates that the request has been dropped because the buffer was full.
-        case requestDropped
-        /// Indicates that the request was not enqueued because the stream was in a terminal state.
-        case requestStreamTerminated
+        /// Indicates that the connection has shut down.
+        case connectionShutdown
     }
 
-    private var connectionState: ConnectionState
+    private var connectionState: State
 
     /// Initialize a new MemcachedConnection.
     ///
@@ -61,16 +59,29 @@ public actor MemcachedConnection {
     ///   - host: The host address of the Memcache server.
     ///   - port: The port number of the Memcache server.
     ///   - eventLoopGroup: The event loop group to use for this connection.
-    public init(host: String, port: Int, eventLoopGroup: EventLoopGroup) async throws {
-        self.eventLoopGroup = eventLoopGroup
-        let bootstrap = ClientBootstrap(group: self.eventLoopGroup)
+    public init(host: String, port: Int, eventLoopGroup: EventLoopGroup) {
+        self.host = host
+        self.port = port
+        self.connectionState = .initial(eventLoopGroup: eventLoopGroup)
+    }
+
+    /// Start consuming the requestStream
+    ///
+    /// This function starts consuming the requests from the `requestStream`,
+    /// sending each request to the Memcache server and handling the server's responses.
+    public func run() async throws {
+        guard case .initial(let eventLoopGroup) = connectionState else {
+            return
+        }
+
+        let bootstrap = ClientBootstrap(group: eventLoopGroup)
             .channelInitializer { channel in
                 return channel.pipeline.addHandlers([MessageToByteHandler(MemcachedRequestEncoder()), ByteToMessageHandler(MemcachedResponseDecoder())])
             }
 
-        let rawChannel = try await bootstrap.connect(host: host, port: port).get()
+        let rawChannel = try await bootstrap.connect(host: self.host, port: self.port).get()
 
-        self.channel = try await eventLoopGroup.next().submit { () -> NIOAsyncChannel<MemcachedResponse, MemcachedRequest> in
+        let channel = try await eventLoopGroup.next().submit { () -> NIOAsyncChannel<MemcachedResponse, MemcachedRequest> in
             return try NIOAsyncChannel<MemcachedResponse, MemcachedRequest>(synchronouslyWrapping: rawChannel)
         }.get()
 
@@ -78,34 +89,34 @@ public actor MemcachedConnection {
         let (stream, continuation) = AsyncStream<StreamElement>.makeStream()
         self.connectionState = .running(
             bufferAllocator: bufferAllocator,
+            channel: channel,
             requestStream: stream,
             requestContinuation: continuation
         )
-    }
 
-    /// Start consuming the requestStream
-    ///
-    /// This function starts consuming the requests from the `requestStream`,
-    /// sending each request to the Memcache server and handling the server's responses.
-    public func run() async {
-        var iterator = self.channel.inboundStream.makeAsyncIterator()
+        var iterator = channel.inboundStream.makeAsyncIterator()
         switch self.connectionState {
-        case .running(_, let requestStream, let requestContinuation):
+        case .running(_, let channel, let requestStream, let requestContinuation):
             for await (request, continuation) in requestStream {
                 do {
-                    try await self.channel.outboundWriter.write(request)
+                    try await channel.outboundWriter.write(request)
                     let responseBuffer = try await iterator.next()
 
                     if let response = responseBuffer {
                         continuation.resume(returning: response)
                     }
                 } catch {
-                    self.connectionState = .finished
-                    requestContinuation.finish()
-                    continuation.resume(throwing: error)
+                    switch self.connectionState {
+                    case .running:
+                        self.connectionState = .finished
+                        requestContinuation.finish()
+                        continuation.resume(throwing: error)
+                    case .initial, .finished:
+                        break
+                    }
                 }
             }
-        case .finished:
+        case .finished, .initial:
             break
         }
     }
@@ -115,8 +126,8 @@ public actor MemcachedConnection {
     /// - Parameter key: The key to fetch the value for.
     /// - Returns: A `ByteBuffer` containing the fetched value, or `nil` if no value was found.
     public func get(_ key: String) async throws -> ByteBuffer? {
-        guard case .running(_, _, let requestContinuation) = self.connectionState else {
-            throw MemcachedConnectionError.connectionFinished
+        guard case .running(_, _, _, let requestContinuation) = self.connectionState else {
+            throw MemcachedConnectionError.connectionShutdown
         }
 
         var flags = MemcachedFlags()
@@ -128,10 +139,8 @@ public actor MemcachedConnection {
             switch requestContinuation.yield((request, continuation)) {
             case .enqueued:
                 break
-            case .dropped:
-                continuation.resume(throwing: MemcachedConnectionError.requestDropped)
-            case .terminated:
-                continuation.resume(throwing: MemcachedConnectionError.requestStreamTerminated)
+            case .dropped, .terminated:
+                continuation.resume(throwing: MemcachedConnectionError.connectionShutdown)
             default:
                 break
             }
@@ -145,8 +154,8 @@ public actor MemcachedConnection {
     ///   - value: The value to set for the key.
     /// - Returns: A `ByteBuffer` containing the server's response to the set request.
     public func set(_ key: String, value: some MemcachedValue) async throws -> ByteBuffer? {
-        guard case .running(let bufferAllocator, _, let requestContinuation) = self.connectionState else {
-            throw MemcachedConnectionError.connectionFinished
+        guard case .running(let bufferAllocator, _, _, let requestContinuation) = self.connectionState else {
+            throw MemcachedConnectionError.connectionShutdown
         }
 
         var buffer = bufferAllocator.buffer(capacity: 0)
@@ -158,10 +167,8 @@ public actor MemcachedConnection {
             switch requestContinuation.yield((request, continuation)) {
             case .enqueued:
                 break
-            case .dropped:
-                continuation.resume(throwing: MemcachedConnectionError.requestDropped)
-            case .terminated:
-                continuation.resume(throwing: MemcachedConnectionError.requestStreamTerminated)
+            case .dropped, .terminated:
+                continuation.resume(throwing: MemcachedConnectionError.connectionShutdown)
             default:
                 break
             }

@@ -20,6 +20,7 @@ import XCTest
 final class MemcachedIntegrationTest: XCTestCase {
     var channel: ClientBootstrap!
     var group: EventLoopGroup!
+    var actorGroup: EventLoopGroup!
 
     override func setUp() {
         super.setUp()
@@ -86,9 +87,10 @@ final class MemcachedIntegrationTest: XCTestCase {
     }
 
     func testMemcachedConnectionActor() async throws {
-        let connectionActor = try await MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: self.group)
+        let ELG = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        let connectionActor = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: ELG)
         Task {
-            await connectionActor.run()
+            try await connectionActor.run()
         }
 
         let setValue = "foo"
@@ -100,12 +102,14 @@ final class MemcachedIntegrationTest: XCTestCase {
         let getValue = try await connectionActor.get("bar")
         let getValueString = getValue?.getString(at: getValue!.readerIndex, length: getValue!.readableBytes)
         XCTAssertEqual(getValueString, setValue, "Received value should be the same as sent")
+        try await ELG.shutdownGracefully()
     }
 
     func testMemcachedConnectionActorWithUInt() async throws {
-        let connectionActor = try await MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: self.group)
+        let ELG = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        let connectionActor = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: ELG)
         Task {
-            await connectionActor.run()
+            try await connectionActor.run()
         }
 
         // Set UInt32 value for key
@@ -125,5 +129,6 @@ final class MemcachedIntegrationTest: XCTestCase {
         var getUInt64Value = try await connectionActor.get("UInt64Key")
         let fetchedUInt64Value = getUInt64Value?.readInteger(as: UInt64.self)
         XCTAssertEqual(fetchedUInt64Value, setUInt64Value, "Received UInt64 value should be the same as sent")
+        try await ELG.shutdownGracefully()
     }
 }
