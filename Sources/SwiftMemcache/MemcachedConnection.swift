@@ -30,8 +30,10 @@ public actor MemcachedConnection {
     /// to the server is active or has been closed. When running, it contains the properties
     /// for the buffer allocator, request stream, and the stream's continuation.
     private enum State {
-        case initial(eventLoopGroup: EventLoopGroup)
-
+        case initial(
+            /// The channel's event loop group.
+            eventLoopGroup: EventLoopGroup
+        )
         case running(
             /// The allocator used to create new buffers.
             bufferAllocator: ByteBufferAllocator,
