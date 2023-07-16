@@ -42,7 +42,7 @@ extension MemcachedValue where Self: StringProtocol {
     }
 }
 
-// Add MemcachedValue conformance to several standard Swift types.
+/// MemcachedValue conformance to several standard Swift types.
 extension Int: MemcachedValue {}
 extension Int8: MemcachedValue {}
 extension Int16: MemcachedValue {}
