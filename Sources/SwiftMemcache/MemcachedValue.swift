@@ -33,7 +33,6 @@ extension MemcachedValue where Self: FixedWidthInteger {
     ///
     /// - Parameter buffer: The ByteBuffer to which the integer should be written.
     public func writeToBuffer(_ buffer: inout ByteBuffer) {
-        buffer.reserveCapacity(MemoryLayout<Self>.size)
         buffer.writeInteger(self)
     }
 
@@ -51,7 +50,6 @@ extension MemcachedValue where Self: StringProtocol {
     ///
     /// - Parameter buffer: The ByteBuffer to which the string should be written.
     public func writeToBuffer(_ buffer: inout ByteBuffer) {
-        buffer.reserveCapacity(buffer.writerIndex + self.count)
         buffer.writeString(String(self))
     }
 
@@ -59,10 +57,7 @@ extension MemcachedValue where Self: StringProtocol {
     ///
     /// - Parameter buffer: The ByteBuffer from which the value should be read.
     public static func readFromBuffer(_ buffer: inout ByteBuffer) -> Self? {
-        guard let string = buffer.readString(length: buffer.readableBytes) else {
-            return nil
-        }
-        return Self(string)
+        return buffer.readString(length: buffer.readableBytes) as? Self
     }
 }
 
