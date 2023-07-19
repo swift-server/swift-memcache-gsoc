@@ -47,5 +47,11 @@ let package = Package(
             name: "SwiftMemcacheTests",
             dependencies: ["SwiftMemcache"]
         ),
+        .executableTarget(
+            name: "swift-memcache-gsoc-example",
+            dependencies: [
+                .target(name: "SwiftMemcache"),
+            ]
+        ),
     ]
 )

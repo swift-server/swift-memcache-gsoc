@@ -108,11 +108,11 @@ final class MemcachedIntegrationTest: XCTestCase {
     }
 
     func testMemcachedConnectionActorWithUInt() async throws {
-        let ELG = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let connectionActor = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: ELG)
+        let connectionActor = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask { try await connectionActor.run() }
@@ -133,7 +133,6 @@ final class MemcachedIntegrationTest: XCTestCase {
             let getUInt64Value: UInt64? = try await connectionActor.get("UInt64Key")
             XCTAssertEqual(getUInt64Value, setUInt64Value, "Received UInt64 value should be the same as sent")
 
-            try! await ELG.shutdownGracefully()
             group.cancelAll()
         }
     }
