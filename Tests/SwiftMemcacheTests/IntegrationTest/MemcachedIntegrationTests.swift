@@ -86,9 +86,11 @@ final class MemcachedIntegrationTest: XCTestCase {
     }
 
     func testMemcachedConnectionActor() async throws {
-        let ELG = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-
-        let connectionActor = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: ELG)
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let connectionActor = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask { try await connectionActor.run() }
@@ -103,7 +105,6 @@ final class MemcachedIntegrationTest: XCTestCase {
             let getValueString = getValue?.getString(at: getValue!.readerIndex, length: getValue!.readableBytes)
             XCTAssertEqual(getValueString, setValue, "Received value should be the same as sent")
 
-            try! await ELG.shutdownGracefully()
             group.cancelAll()
         }
     }
