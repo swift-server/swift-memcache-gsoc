@@ -21,7 +21,7 @@ public protocol MemcachedValue {
     /// - Parameter buffer: The ByteBuffer to which the value should be written.
     func writeToBuffer(_ buffer: inout ByteBuffer)
 
-    /// Initializes the type from a ByteBuffer.
+    /// Reads the type from a ByteBuffer.
     ///
     /// - Parameter buffer: The ByteBuffer from which the value should be read.
     static func readFromBuffer(_ buffer: inout ByteBuffer) -> Self?
