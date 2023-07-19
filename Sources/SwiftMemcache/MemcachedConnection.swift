@@ -57,6 +57,8 @@ public actor MemcachedConnection {
     enum MemcachedConnectionError: Error {
         /// Indicates that the connection has shut down.
         case connectionShutdown
+        /// Indicates that a nil response was received from the server.
+        case unexpectedNilResponse
     }
 
     private var state: State
@@ -137,8 +139,8 @@ public actor MemcachedConnection {
     /// Fetch the value for a key from the Memcache server.
     ///
     /// - Parameter key: The key to fetch the value for.
-    /// - Returns: A `ByteBuffer` containing the fetched value, or `nil` if no value was found.
-    public func get(_ key: String) async throws -> ByteBuffer? {
+    /// - Returns: A `Value` containing the fetched value, or `nil` if no value was found.
+    public func get<Value: MemcachedValue>(_ key: String, as valueType: Value.Type = Value.self) async throws -> Value? {
         switch self.state {
         case .initial(_, _, _, let requestContinuation),
              .running(_, _, _, let requestContinuation):
@@ -148,7 +150,7 @@ public actor MemcachedConnection {
             let command = MemcachedRequest.GetCommand(key: key, flags: flags)
             let request = MemcachedRequest.get(command)
 
-            return try await withCheckedThrowingContinuation { continuation in
+            let response = try await withCheckedThrowingContinuation { continuation in
                 switch requestContinuation.yield((request, continuation)) {
                 case .enqueued:
                     break
@@ -159,6 +161,11 @@ public actor MemcachedConnection {
                 }
             }.value
 
+            if var unwrappedResponse = response {
+                return Value.readFromBuffer(&unwrappedResponse)
+            } else {
+                throw MemcachedConnectionError.unexpectedNilResponse
+            }
         case .finished:
             throw MemcachedConnectionError.connectionShutdown
         }
@@ -168,19 +175,18 @@ public actor MemcachedConnection {
     ///
     /// - Parameters:
     ///   - key: The key to set the value for.
-    ///   - value: The value to set for the key.
-    /// - Returns: A `ByteBuffer` containing the server's response to the set request.
-    public func set(_ key: String, value: String) async throws -> ByteBuffer? {
+    ///   - value: The `Value` to set for the key.
+    public func set(_ key: String, value: some MemcachedValue) async throws {
         switch self.state {
         case .initial(_, let bufferAllocator, _, let requestContinuation),
              .running(let bufferAllocator, _, _, let requestContinuation):
 
             var buffer = bufferAllocator.buffer(capacity: 0)
-            buffer.writeString(value)
+            value.writeToBuffer(&buffer)
             let command = MemcachedRequest.SetCommand(key: key, value: buffer)
             let request = MemcachedRequest.set(command)
 
-            return try await withCheckedThrowingContinuation { continuation in
+            _ = try await withCheckedThrowingContinuation { continuation in
                 switch requestContinuation.yield((request, continuation)) {
                 case .enqueued:
                     break
