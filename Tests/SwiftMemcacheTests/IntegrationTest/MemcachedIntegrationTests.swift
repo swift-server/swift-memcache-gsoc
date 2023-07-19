@@ -84,4 +84,28 @@ final class MemcachedIntegrationTest: XCTestCase {
             XCTFail("Failed to connect to Memcached server: \(error)")
         }
     }
+
+    func testMemcachedConnectionActor() async throws {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let connectionActor = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await connectionActor.run() }
+
+            let setValue = "foo"
+            var setBuffer = ByteBufferAllocator().buffer(capacity: setValue.count)
+            setBuffer.writeString(setValue)
+            let _ = try await connectionActor.set("bar", value: setValue)
+
+            // Get value for key
+            let getValue = try await connectionActor.get("bar")
+            let getValueString = getValue?.getString(at: getValue!.readerIndex, length: getValue!.readableBytes)
+            XCTAssertEqual(getValueString, setValue, "Received value should be the same as sent")
+
+            group.cancelAll()
+        }
+    }
 }
