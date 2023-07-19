@@ -97,7 +97,7 @@ final class MemcachedIntegrationTest: XCTestCase {
 
             // Set key and value
             let setValue = "foo"
-            let _ = try await connectionActor.set("bar", value: setValue)
+            try await connectionActor.set("bar", value: setValue)
 
             // Get value for key
             let getValue: String? = try await connectionActor.get("bar")
@@ -119,7 +119,7 @@ final class MemcachedIntegrationTest: XCTestCase {
 
             // Set UInt32 value for key
             let setUInt32Value: UInt32 = 1_234_567_890
-            let _ = try await connectionActor.set("UInt32Key", value: setUInt32Value)
+            try await connectionActor.set("UInt32Key", value: setUInt32Value)
 
             // Get value for UInt32 key
             let getUInt32Value: UInt32? = try await connectionActor.get("UInt32Key")

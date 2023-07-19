@@ -176,8 +176,7 @@ public actor MemcachedConnection {
     /// - Parameters:
     ///   - key: The key to set the value for.
     ///   - value: The `Value` to set for the key.
-    /// - Returns: A `ByteBuffer` containing the server's response to the set request.
-    public func set(_ key: String, value: some MemcachedValue) async throws -> ByteBuffer? {
+    public func set(_ key: String, value: some MemcachedValue) async throws {
         switch self.state {
         case .initial(_, let bufferAllocator, _, let requestContinuation),
              .running(let bufferAllocator, _, _, let requestContinuation):
@@ -187,7 +186,7 @@ public actor MemcachedConnection {
             let command = MemcachedRequest.SetCommand(key: key, value: buffer)
             let request = MemcachedRequest.set(command)
 
-            return try await withCheckedThrowingContinuation { continuation in
+            _ = try await withCheckedThrowingContinuation { continuation in
                 switch requestContinuation.yield((request, continuation)) {
                 case .enqueued:
                     break

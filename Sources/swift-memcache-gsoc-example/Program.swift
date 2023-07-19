@@ -32,7 +32,7 @@ struct Program {
 
             // Set a value for a key.
             let setValue = "bar"
-            _ = try await memcachedConnection.set("foo", value: setValue)
+            try await memcachedConnection.set("foo", value: setValue)
 
             // Get the value for a key.
             // Specify the expected type for the value returned from Memcache.
