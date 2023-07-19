@@ -95,16 +95,45 @@ final class MemcachedIntegrationTest: XCTestCase {
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask { try await connectionActor.run() }
 
+            // Set key and value
             let setValue = "foo"
-            var setBuffer = ByteBufferAllocator().buffer(capacity: setValue.count)
-            setBuffer.writeString(setValue)
             let _ = try await connectionActor.set("bar", value: setValue)
 
             // Get value for key
-            let getValue = try await connectionActor.get("bar")
-            let getValueString = getValue?.getString(at: getValue!.readerIndex, length: getValue!.readableBytes)
-            XCTAssertEqual(getValueString, setValue, "Received value should be the same as sent")
+            let getValue: String? = try await connectionActor.get("bar")
+            XCTAssertEqual(getValue, setValue, "Received value should be the same as sent")
 
+            group.cancelAll()
+        }
+    }
+
+    func testMemcachedConnectionActorWithUInt() async throws {
+        let ELG = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let connectionActor = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: ELG)
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await connectionActor.run() }
+
+            // Set UInt32 value for key
+            let setUInt32Value: UInt32 = 1_234_567_890
+            let _ = try await connectionActor.set("UInt32Key", value: setUInt32Value)
+
+            // Get value for UInt32 key
+            let getUInt32Value: UInt32? = try await connectionActor.get("UInt32Key")
+            XCTAssertEqual(getUInt32Value, setUInt32Value, "Received UInt32 value should be the same as sent")
+
+            // Set UInt64 value for key
+            let setUInt64Value: UInt64 = 12_345_678_901_234_567_890
+            let _ = try await connectionActor.set("UInt64Key", value: setUInt64Value)
+
+            // Get value for UInt64 key
+            let getUInt64Value: UInt64? = try await connectionActor.get("UInt64Key")
+            XCTAssertEqual(getUInt64Value, setUInt64Value, "Received UInt64 value should be the same as sent")
+
+            try! await ELG.shutdownGracefully()
             group.cancelAll()
         }
     }
