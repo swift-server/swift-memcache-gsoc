@@ -16,6 +16,7 @@ import NIOCore
 import NIOPosix
 import SwiftMemcache
 
+@available(macOS 13.0, *)
 @main
 struct Program {
     // Create an event loop group with a single thread
@@ -32,7 +33,9 @@ struct Program {
 
             // Set a value for a key.
             let setValue = "bar"
-            try await memcachedConnection.set("foo", value: setValue)
+            let now = ContinuousClock.Instant.now
+            let expiration = now.advanced(by: .seconds(90))
+            try await memcachedConnection.set("foo", value: setValue, expiration: expiration)
 
             // Get the value for a key.
             // Specify the expected type for the value returned from Memcache.

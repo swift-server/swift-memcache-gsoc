@@ -85,6 +85,7 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
+    @available(macOS 13.0, *)
     func testMemcachedConnectionActor() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
@@ -107,6 +108,7 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
+    @available(macOS 13.0, *)
     func testMemcachedConnectionActorWithUInt() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {

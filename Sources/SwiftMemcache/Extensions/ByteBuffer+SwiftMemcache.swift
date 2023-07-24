@@ -56,6 +56,12 @@ extension ByteBuffer {
             self.writeInteger(UInt8.whitespace)
             self.writeInteger(UInt8.v)
         }
+
+        if let timeToLive = flags.timeToLive {
+            self.writeInteger(UInt8.whitespace)
+            self.writeInteger(UInt8.T)
+            self.writeIntegerAsASCII(timeToLive)
+        }
     }
 }
 

@@ -19,6 +19,7 @@ import NIOPosix
 /// An actor to create a connection to a Memcache server.
 ///
 /// This actor can be used to send commands to the server.
+@available(macOS 13.0, *)
 public actor MemcachedConnection {
     private typealias StreamElement = (MemcachedRequest, CheckedContinuation<MemcachedResponse, Error>)
     private let host: String
@@ -38,7 +39,8 @@ public actor MemcachedConnection {
             /// The stream of requests to be sent to the server.
             requestStream: AsyncStream<StreamElement>,
             /// The continuation for the request stream.
-            requestContinuation: AsyncStream<StreamElement>.Continuation
+            requestContinuation: AsyncStream<StreamElement>.Continuation,
+            clock: ContinuousClock
         )
         case running(
             /// The allocator used to create new buffers.
@@ -48,7 +50,8 @@ public actor MemcachedConnection {
             /// The stream of requests to be sent to the server.
             requestStream: AsyncStream<StreamElement>,
             /// The continuation for the request stream.
-            requestContinuation: AsyncStream<StreamElement>.Continuation
+            requestContinuation: AsyncStream<StreamElement>.Continuation,
+            clock: ContinuousClock
         )
         case finished
     }
@@ -78,7 +81,8 @@ public actor MemcachedConnection {
             eventLoopGroup: eventLoopGroup,
             bufferAllocator: bufferAllocator,
             requestStream: stream,
-            requestContinuation: continuation
+            requestContinuation: continuation,
+            clock: ContinuousClock()
         )
     }
 
@@ -87,7 +91,7 @@ public actor MemcachedConnection {
     /// This method connects to the Memcache server and starts handling requests. It only returns when the connection
     /// to the server is finished or the task that called this method is cancelled.
     public func run() async throws {
-        guard case .initial(let eventLoopGroup, let bufferAllocator, let stream, let continuation) = state else {
+        guard case .initial(let eventLoopGroup, let bufferAllocator, let stream, let continuation, let clock) = state else {
             throw MemcachedConnectionError.connectionShutdown
         }
 
@@ -105,12 +109,13 @@ public actor MemcachedConnection {
             bufferAllocator: bufferAllocator,
             channel: channel,
             requestStream: stream,
-            requestContinuation: continuation
+            requestContinuation: continuation,
+            clock: clock
         )
 
         var iterator = channel.inboundStream.makeAsyncIterator()
         switch self.state {
-        case .running(_, let channel, let requestStream, let requestContinuation):
+        case .running(_, let channel, let requestStream, let requestContinuation, _):
             for await (request, continuation) in requestStream {
                 do {
                     try await channel.outboundWriter.write(request)
@@ -142,8 +147,8 @@ public actor MemcachedConnection {
     /// - Returns: A `Value` containing the fetched value, or `nil` if no value was found.
     public func get<Value: MemcachedValue>(_ key: String, as valueType: Value.Type = Value.self) async throws -> Value? {
         switch self.state {
-        case .initial(_, _, _, let requestContinuation),
-             .running(_, _, _, let requestContinuation):
+        case .initial(_, _, _, let requestContinuation, _),
+             .running(_, _, _, let requestContinuation, _):
 
             var flags = MemcachedFlags()
             flags.shouldReturnValue = true
@@ -176,14 +181,19 @@ public actor MemcachedConnection {
     /// - Parameters:
     ///   - key: The key to set the value for.
     ///   - value: The `Value` to set for the key.
-    public func set(_ key: String, value: some MemcachedValue) async throws {
+    public func set(_ key: String, value: some MemcachedValue, expiration: ContinuousClock.Instant? = nil) async throws {
         switch self.state {
-        case .initial(_, let bufferAllocator, _, let requestContinuation),
-             .running(let bufferAllocator, _, _, let requestContinuation):
+        case .initial(_, let bufferAllocator, _, let requestContinuation, let clock),
+             .running(let bufferAllocator, _, _, let requestContinuation, let clock):
 
             var buffer = bufferAllocator.buffer(capacity: 0)
             value.writeToBuffer(&buffer)
-            let command = MemcachedRequest.SetCommand(key: key, value: buffer)
+            var flags: MemcachedFlags?
+            if let expiration {
+                flags = MemcachedFlags(expiration: expiration, clock: clock)
+            }
+
+            let command = MemcachedRequest.SetCommand(key: key, value: buffer, flags: flags)
             let request = MemcachedRequest.set(command)
 
             _ = try await withCheckedThrowingContinuation { continuation in

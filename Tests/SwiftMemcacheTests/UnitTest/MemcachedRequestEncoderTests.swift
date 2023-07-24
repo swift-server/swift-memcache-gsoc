@@ -43,6 +43,29 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
     }
 
+    // ms foo 2 T90\r\n
+    // hi\r\n
+    func testEncodeSetTTLRequest() {
+        // Prepare a MemcachedRequest
+        var buffer = ByteBufferAllocator().buffer(capacity: 2)
+        buffer.writeString("hi")
+        var flags = MemcachedFlags()
+        flags.timeToLive = 90
+        let command = MemcachedRequest.SetCommand(key: "foo", value: buffer, flags: flags)
+        let request = MemcachedRequest.set(command)
+
+        // pass our request through the encoder
+        var outBuffer = ByteBufferAllocator().buffer(capacity: 0)
+        do {
+            try self.encoder.encode(data: request, out: &outBuffer)
+        } catch {
+            XCTFail("Encoding failed with error: \(error)")
+        }
+
+        let expectedEncodedData = "ms foo 2 T90\r\nhi\r\n"
+        XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
+    }
+
     func testEncodeGetRequest() {
         // Prepare a MemcachedRequest
         var flags = MemcachedFlags()
