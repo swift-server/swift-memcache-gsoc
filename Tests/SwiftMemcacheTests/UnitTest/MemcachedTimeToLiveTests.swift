@@ -17,7 +17,7 @@ import NIOCore
 import XCTest
 
 @available(macOS 13.0, *)
-final class TimeToLiveTests: XCTestCase {
+final class MemcachedTimeToLiveTests: XCTestCase {
     let clock = ContinuousClock()
 
     func testIndefinitelyTTL() {
