@@ -17,6 +17,7 @@
 /// Flags for the 'mg' (meta get) and 'ms' (meta set) commands are represented in this struct.
 /// The 'v' flag for the meta get command dictates whether the item value should be returned in the data block.
 /// The 'T' flag is used for both the meta get and meta set commands to specify the Time-To-Live (TTL) for an item.
+/// The 't' flag for the meta get command indicates whether the Time-To-Live (TTL) for the item should be returned.
 struct MemcachedFlags {
     /// Flag 'v' for the 'mg' (meta get) command.
     ///
@@ -30,26 +31,34 @@ struct MemcachedFlags {
     /// If set, the item is considered to be expired after this number of seconds.
     var timeToLive: UInt32?
 
+    /// Flag 't' for the 'mg' (meta get) command.
+    ///
+    /// If true, the Time-To-Live (TTL) for the item is returned.
+    /// If false, the TTL for the item is not returned.
+    var shouldReturnTTL: Bool?
+
     init() {}
 }
 
 extension MemcachedFlags: Hashable {}
 
+/// Enum representing the Time-To-Live (TTL) of a Memcached value.
 @available(macOS 13.0, *)
-extension MemcachedFlags {
-    /// Initializes a new instance of `MemcachedFlags` with a specified expiration time and clock.
-    ///
-    /// This initializer uses the provided `expiration` and `clock` parameters to calculate the TTL (Time-To-Live)
-    /// for an item. The TTL is calculated as the duration from the current time to the expiration time in seconds.
-    ///
-    /// - Parameters:
-    ///   - expiration: The expiration time for the item.
-    ///   - clock: The clock used to get the current time.
-    init(expiration: ContinuousClock.Instant, clock: ContinuousClock) {
-        self.init()
-        let now = clock.now
-        let timeInterval = now.duration(to: expiration)
-        let ttlInSeconds = timeInterval.components.seconds
-        self.timeToLive = UInt32(ttlInSeconds)
+public enum TimeToLive {
+    /// The value should never expire.
+    case indefinitely
+    /// The value should expire after a specified time.
+    case expiresAt(ContinuousClock.Instant)
+
+    /// Returns the duration in seconds between the current time and the expiration time.
+    public func durationUntilExpiration(inRelationTo clock: ContinuousClock) -> UInt32 {
+        switch self {
+        case .indefinitely:
+            return 0
+        case .expiresAt(let expiration):
+            let now = clock.now
+            let timeInterval = now.duration(to: expiration)
+            return UInt32(timeInterval.components.seconds)
+        }
     }
 }

@@ -34,7 +34,8 @@ struct Program {
             // Set a value for a key.
             let setValue = "bar"
             let now = ContinuousClock.Instant.now
-            let expiration = now.advanced(by: .seconds(90))
+            let expirationTime = now.advanced(by: .seconds(90))
+            let expiration = TimeToLive.expiresAt(expirationTime)
             try await memcachedConnection.set("foo", value: setValue, expiration: expiration)
 
             // Get the value for a key.

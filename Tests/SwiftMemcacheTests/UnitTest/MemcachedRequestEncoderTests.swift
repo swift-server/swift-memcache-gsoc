@@ -43,8 +43,6 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
     }
 
-    // ms foo 2 T90\r\n
-    // hi\r\n
     func testEncodeSetTTLRequest() {
         // Prepare a MemcachedRequest
         var buffer = ByteBufferAllocator().buffer(capacity: 2)

@@ -41,6 +41,8 @@ final class MemcachedResponseDecoderTests: XCTestCase {
             returnCode = 0x4E46
         case .VA:
             returnCode = 0x5641
+        case .EN:
+            returnCode = 0x454E
         }
 
         buffer.writeInteger(returnCode)
@@ -49,6 +51,14 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         // Write the data length <size> to the buffer.
         if let dataLength = response.dataLength, response.returnCode == .VA {
             buffer.writeIntegerAsASCII(dataLength)
+
+            // parse flags if there are flags
+            if let flags = response.flags, let shouldReturnTTL = flags.shouldReturnTTL, shouldReturnTTL {
+                buffer.writeInteger(UInt8.whitespace)
+                buffer.writeInteger(UInt8.t)
+                buffer.writeIntegerAsASCII((response.flags?.timeToLive!)!)
+            }
+
             buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
 
             // Write the value <data block> to the buffer if it exists
@@ -58,6 +68,10 @@ final class MemcachedResponseDecoderTests: XCTestCase {
             }
         }
         buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
+
+        for byte in buffer.readableBytesView {
+            print(byte)
+        }
 
         return buffer
     }
@@ -102,6 +116,12 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         try self.testDecodeResponse(buffer: &buffer, expectedReturnCode: .NF)
     }
 
+    func testDecodeMissResponse() throws {
+        let missResponse = MemcachedResponse(returnCode: .EN, dataLength: nil)
+        var buffer = self.makeMemcachedResponseByteBuffer(from: missResponse)
+        try self.testDecodeResponse(buffer: &buffer, expectedReturnCode: .EN)
+    }
+
     func testDecodeValueResponse() throws {
         let allocator = ByteBufferAllocator()
         var valueBuffer = allocator.buffer(capacity: 8)
@@ -122,6 +142,40 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         if let decoded = output {
             XCTAssertEqual(decoded.returnCode, .VA)
             XCTAssertEqual(decoded.dataLength, 2)
+            if let value = decoded.value {
+                var copiedBuffer = value
+                XCTAssertEqual(copiedBuffer.readString(length: Int(decoded.dataLength!)), "hi")
+            } else {
+                XCTFail("Decoded value was not found.")
+            }
+        } else {
+            XCTFail("Failed to decode the inbound response.")
+        }
+    }
+
+    func testDecodeValueTTLResponse() throws {
+        let allocator = ByteBufferAllocator()
+        var valueBuffer = allocator.buffer(capacity: 8)
+        valueBuffer.writeString("hi")
+
+        var flags = MemcachedFlags()
+        flags.shouldReturnTTL = true
+        flags.timeToLive = 90
+        let valueResponse = MemcachedResponse(returnCode: .VA, dataLength: 2, flags: flags, value: valueBuffer)
+        var buffer = self.makeMemcachedResponseByteBuffer(from: valueResponse)
+
+        // Pass our response through the decoder
+        var output: MemcachedResponse? = nil
+        do {
+            output = try self.decoder.decode(buffer: &buffer)
+        } catch {
+            XCTFail("Decoding failed with error: \(error)")
+        }
+        // Check the decoded response
+        if let decoded = output {
+            XCTAssertEqual(decoded.returnCode, .VA)
+            XCTAssertEqual(decoded.dataLength, 2)
+            XCTAssertEqual(decoded.flags?.timeToLive, 90, "TTL value is not as expected")
             if let value = decoded.value {
                 var copiedBuffer = value
                 XCTAssertEqual(copiedBuffer.readString(length: Int(decoded.dataLength!)), "hi")

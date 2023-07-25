@@ -40,6 +40,8 @@ public actor MemcachedConnection {
             requestStream: AsyncStream<StreamElement>,
             /// The continuation for the request stream.
             requestContinuation: AsyncStream<StreamElement>.Continuation,
+            /// The clock used to measure time in a continuous, monotonic manner.
+            /// This is used for time-sensitive operations such as calculating TTLs.
             clock: ContinuousClock
         )
         case running(
@@ -51,6 +53,8 @@ public actor MemcachedConnection {
             requestStream: AsyncStream<StreamElement>,
             /// The continuation for the request stream.
             requestContinuation: AsyncStream<StreamElement>.Continuation,
+            /// The clock used to measure time in a continuous, monotonic manner.
+            /// This is used for time-sensitive operations such as calculating TTLs.
             clock: ContinuousClock
         )
         case finished
@@ -141,6 +145,8 @@ public actor MemcachedConnection {
         }
     }
 
+    // MARK: - Fetching Values
+
     /// Fetch the value for a key from the Memcache server.
     ///
     /// - Parameter key: The key to fetch the value for.
@@ -152,6 +158,7 @@ public actor MemcachedConnection {
 
             var flags = MemcachedFlags()
             flags.shouldReturnValue = true
+
             let command = MemcachedRequest.GetCommand(key: key, flags: flags)
             let request = MemcachedRequest.get(command)
 
@@ -176,12 +183,94 @@ public actor MemcachedConnection {
         }
     }
 
+    // MARK: - Updating Time-To-Live
+
+    /// Update the TTL for a key in the Memcache server.
+    ///
+    /// - Parameters:
+    ///   - key: The key for which to update the TTL.
+    ///   - newTimeToLive: The new Time-To-Live value. If `nil`, the TTL will not be updated.
+    /// - Throws: A `MemcachedConnectionError` if the connection is shutdown or if there's an unexpected nil response.
+    public func get<Value: MemcachedValue>(_ key: String, as valueType: Value.Type = Value.self, newTimeToLive: TimeToLive? = nil) async throws {
+        switch self.state {
+        case .initial(_, _, _, let requestContinuation, let clock),
+             .running(_, _, _, let requestContinuation, let clock):
+
+            var flags = MemcachedFlags()
+            if let newTimeToLive {
+                flags = MemcachedFlags()
+                flags.timeToLive = newTimeToLive.durationUntilExpiration(inRelationTo: clock)
+            }
+            flags.shouldReturnValue = true
+
+            let command = MemcachedRequest.GetCommand(key: key, flags: flags)
+            let request = MemcachedRequest.get(command)
+
+            _ = try await withCheckedThrowingContinuation { continuation in
+                switch requestContinuation.yield((request, continuation)) {
+                case .enqueued:
+                    break
+                case .dropped, .terminated:
+                    continuation.resume(throwing: MemcachedConnectionError.connectionShutdown)
+                default:
+                    break
+                }
+            }
+
+        case .finished:
+            throw MemcachedConnectionError.connectionShutdown
+        }
+    }
+
+    // MARK: - Fetching TTL
+
+    /// Fetch the value for a key and its TTL from the Memcache server.
+    ///
+    /// - Parameter key: The key to fetch the value and TTL for.
+    /// - Returns: A tuple containing the fetched value and its TTL, or `nil` if no value was found.
+    /// - Throws: A `MemcachedConnectionError` if the connection is shutdown.
+    public func get<Value: MemcachedValue>(_ key: String, as valueType: Value.Type = Value.self) async throws -> (Value?, TimeToLive?) {
+        switch self.state {
+        case .initial(_, _, _, let requestContinuation, let clock),
+             .running(_, _, _, let requestContinuation, let clock):
+
+            var flags = MemcachedFlags()
+            flags.shouldReturnValue = true
+            flags.shouldReturnTTL = true
+
+            let command = MemcachedRequest.GetCommand(key: key, flags: flags)
+            let request = MemcachedRequest.get(command)
+
+            var response = try await withCheckedThrowingContinuation { continuation in
+                switch requestContinuation.yield((request, continuation)) {
+                case .enqueued:
+                    break
+                case .dropped, .terminated:
+                    continuation.resume(throwing: MemcachedConnectionError.connectionShutdown)
+                default:
+                    break
+                }
+            }
+
+            let value = Value.readFromBuffer(&response.value!)
+            let ttl = response.flags?.timeToLive.map {
+                TimeToLive.expiresAt(clock.now.advanced(by: Duration.seconds($0)))
+            } ?? .indefinitely
+            return (value, ttl)
+
+        case .finished:
+            throw MemcachedConnectionError.connectionShutdown
+        }
+    }
+
+    // MARK: - Setting a Value
+
     /// Set the value for a key on the Memcache server.
     ///
     /// - Parameters:
     ///   - key: The key to set the value for.
     ///   - value: The `Value` to set for the key.
-    public func set(_ key: String, value: some MemcachedValue, expiration: ContinuousClock.Instant? = nil) async throws {
+    public func set(_ key: String, value: some MemcachedValue, expiration: TimeToLive? = nil) async throws {
         switch self.state {
         case .initial(_, let bufferAllocator, _, let requestContinuation, let clock),
              .running(let bufferAllocator, _, _, let requestContinuation, let clock):
@@ -190,7 +279,8 @@ public actor MemcachedConnection {
             value.writeToBuffer(&buffer)
             var flags: MemcachedFlags?
             if let expiration {
-                flags = MemcachedFlags(expiration: expiration, clock: clock)
+                flags = MemcachedFlags()
+                flags?.timeToLive = expiration.durationUntilExpiration(inRelationTo: clock)
             }
 
             let command = MemcachedRequest.SetCommand(key: key, value: buffer, flags: flags)

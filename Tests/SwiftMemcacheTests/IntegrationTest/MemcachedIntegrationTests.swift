@@ -109,6 +109,92 @@ final class MemcachedIntegrationTest: XCTestCase {
     }
 
     @available(macOS 13.0, *)
+    func testFetchAndPrintValueWithTTL() async throws {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await memcachedConnection.run() }
+
+            // Set key and value with a known TTL
+            let setValue = "foo"
+
+            // TTL in seconds
+            let ttlValue = 23
+            let now = ContinuousClock.Instant.now
+            let expirationTime = now.advanced(by: .seconds(ttlValue))
+            let expiration = TimeToLive.expiresAt(expirationTime)
+
+            try await memcachedConnection.set("bar", value: setValue, expiration: expiration)
+
+            let (getValue, ttl): (String?, TimeToLive?) = try await memcachedConnection.get("bar")
+
+            if let ttl {
+                let clock = ContinuousClock()
+                let durationInSeconds = ttl.durationUntilExpiration(inRelationTo: clock)
+
+                // Check if the received TTL is less than or equal to the set TTL
+                XCTAssert(durationInSeconds <= ttlValue, "Received TTL should be less than or equal to the set TTL")
+            } else {
+                fatalError("No TTL value was returned")
+            }
+
+            XCTAssertEqual(getValue, setValue, "Received value should be the same as sent")
+
+            group.cancelAll()
+        }
+    }
+
+    @available(macOS 13.0, *)
+    func testUpdateTTL() async throws {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await memcachedConnection.run() }
+
+            // Set key and value with a known TTL
+            let setValue = "foo"
+            // Initial TTL in seconds
+            let initialTTLValue = 1111
+            let now = ContinuousClock.Instant.now
+            let expirationTime = now.advanced(by: .seconds(initialTTLValue))
+            let expiration = TimeToLive.expiresAt(expirationTime)
+            try await memcachedConnection.set("bar", value: setValue, expiration: expiration)
+
+            // Update the TTL for the key
+            // New TTL in seconds
+            let newTTLValue = 2222
+            let newExpirationTime = now.advanced(by: .seconds(newTTLValue))
+            let newExpiration = TimeToLive.expiresAt(newExpirationTime)
+            _ = try await memcachedConnection.get("bar", as: String.self, newTimeToLive: newExpiration)
+
+            // Get value for key
+            let (getValueWithTTL, ttl): (String?, TimeToLive?) = try await memcachedConnection.get("bar")
+
+            if let ttl {
+                let clock = ContinuousClock()
+                let durationInSeconds = ttl.durationUntilExpiration(inRelationTo: clock)
+
+                // Check if the received TTL is less than or equal to the set TTL
+                XCTAssert(durationInSeconds <= newTTLValue, "Received TTL should be less than or equal to the updated TTL")
+            } else {
+                fatalError("No TTL value was returned")
+            }
+
+            XCTAssertEqual(getValueWithTTL, setValue, "Received value should be the same as sent")
+
+            group.cancelAll()
+        }
+    }
+
+    @available(macOS 13.0, *)
     func testMemcachedConnectionActorWithUInt() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {

@@ -30,13 +30,13 @@ extension ByteBuffer {
     /// Reads an integer from ASCII characters directly from this `ByteBuffer`.
     /// The reading stops as soon as a non-digit character is encountered.
     ///
-    /// - Returns: A `UInt64` integer read from the buffer.
+    /// - Returns: A `T` integer read from the buffer.
     /// If the buffer does not contain any digits at the current reading position, returns `nil`.
-    mutating func readIntegerFromASCII() -> UInt64? {
-        var value: UInt64 = 0
+    mutating func readIntegerFromASCII<T: FixedWidthInteger>() -> T? {
+        var value: T = 0
         while self.readableBytes > 0, let currentByte = self.readInteger(as: UInt8.self),
               currentByte >= UInt8.zero && currentByte <= UInt8.nine {
-            value = (value * 10) + UInt64(currentByte - UInt8.zero)
+            value = (value * 10) + T(currentByte - UInt8.zero)
         }
         return value > 0 ? value : nil
     }
@@ -62,6 +62,11 @@ extension ByteBuffer {
             self.writeInteger(UInt8.T)
             self.writeIntegerAsASCII(timeToLive)
         }
+
+        if let shouldReturnTTL = flags.shouldReturnTTL, shouldReturnTTL {
+            self.writeInteger(UInt8.whitespace)
+            self.writeInteger(UInt8.t)
+        }
     }
 }
 
@@ -70,12 +75,17 @@ extension ByteBuffer {
     ///
     /// - returns: A `MemcachedFlags` instance populated with the flags read from the buffer.
     mutating func readMemcachedFlags() -> MemcachedFlags {
-        let flags = MemcachedFlags()
+        var flags = MemcachedFlags()
         while let nextByte = self.getInteger(at: self.readerIndex, as: UInt8.self) {
             switch nextByte {
             case UInt8.whitespace:
                 self.moveReaderIndex(forwardBy: 1)
                 continue
+            case UInt8.t:
+                self.moveReaderIndex(forwardBy: 1)
+                let ttl: UInt32? = self.readIntegerFromASCII()
+                flags.timeToLive = ttl
+
             case UInt8.carriageReturn:
                 guard let followingByte = self.getInteger(at: self.readerIndex + 1, as: UInt8.self) else {
                     // We were expecting a newline after the carriage return, but didn't get it.
@@ -87,6 +97,10 @@ extension ByteBuffer {
                     // If it wasn't a newline, it is something unexpected.
                     fatalError("Unexpected character in flags. Expected newline after carriage return.")
                 }
+            case UInt8.newline:
+                // we are finished parsing flags
+                self.moveReaderIndex(forwardBy: 1)
+                return flags
             default:
                 // Encountered a character we weren't expecting. This should be a fatal error.
                 fatalError("Unexpected character in flags.")
