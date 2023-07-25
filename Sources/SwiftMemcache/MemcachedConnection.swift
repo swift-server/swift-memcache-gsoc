@@ -265,11 +265,15 @@ public actor MemcachedConnection {
 
     // MARK: - Setting a Value
 
-    /// Set the value for a key on the Memcache server.
+    /// Set the value for a key on the Memcache server, with optional expiration (TTL).
     ///
     /// - Parameters:
     ///   - key: The key to set the value for.
     ///   - value: The `Value` to set for the key.
+    ///   - expiration: Optional `TimeToLive` value that defines the TTL (Time-To-Live) for the key.
+    ///     If set, the value will expire after the specified TTL.
+    ///     If not set, the value will not expire.
+    /// - Throws: A `MemcachedConnectionError` if the connection is shutdown.
     public func set(_ key: String, value: some MemcachedValue, expiration: TimeToLive? = nil) async throws {
         switch self.state {
         case .initial(_, let bufferAllocator, _, let requestContinuation, let clock),
