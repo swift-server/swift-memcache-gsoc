@@ -69,10 +69,6 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         }
         buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
 
-        for byte in buffer.readableBytesView {
-            print(byte)
-        }
-
         return buffer
     }
 
