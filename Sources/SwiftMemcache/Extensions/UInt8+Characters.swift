@@ -22,6 +22,7 @@ extension UInt8 {
     static var v: UInt8 = .init(ascii: "v")
     static var t: UInt8 = .init(ascii: "t")
     static var T: UInt8 = .init(ascii: "T")
+    static var hyphen: UInt8 = .init(ascii: "-")
     static var zero: UInt8 = .init(ascii: "0")
     static var nine: UInt8 = .init(ascii: "9")
 }

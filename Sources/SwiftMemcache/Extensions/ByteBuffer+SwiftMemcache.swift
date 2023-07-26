@@ -76,6 +76,7 @@ extension ByteBuffer {
     /// - returns: A `MemcachedFlags` instance populated with the flags read from the buffer.
     mutating func readMemcachedFlags() -> MemcachedFlags {
         var flags = MemcachedFlags()
+        var ttlIsUnlimited = false
         while let nextByte = self.getInteger(at: self.readerIndex, as: UInt8.self) {
             switch nextByte {
             case UInt8.whitespace:
@@ -83,8 +84,19 @@ extension ByteBuffer {
                 continue
             case UInt8.t:
                 self.moveReaderIndex(forwardBy: 1)
-                let ttl: UInt32? = self.readIntegerFromASCII()
-                flags.timeToLive = ttl
+                if let currentByte = self.getInteger(at: self.readerIndex, as: UInt8.self), currentByte == UInt8.hyphen {
+                    ttlIsUnlimited = true
+                    self.moveReaderIndex(forwardBy: 1)
+                }
+                if let ttl: UInt32 = self.readIntegerFromASCII() {
+                    if ttlIsUnlimited {
+                        // If TTL is negative, set it as indefinite.
+                        flags.timeToLive = nil
+                        ttlIsUnlimited = false
+                    } else {
+                        flags.timeToLive = ttl
+                    }
+                }
 
             case UInt8.carriageReturn:
                 guard let followingByte = self.getInteger(at: self.readerIndex + 1, as: UInt8.self) else {

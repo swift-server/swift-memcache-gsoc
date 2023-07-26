@@ -22,15 +22,27 @@ final class MemcachedTimeToLiveTests: XCTestCase {
 
     func testIndefinitelyTTL() {
         let ttl = TimeToLive.indefinitely
-        let duration = ttl.durationUntilExpiration(inRelationTo: self.clock)
-        XCTAssertEqual(duration, 0, "Indefinite TTL should return a duration of 0.")
+        var durationInSeconds: UInt32 = 0
+        switch ttl {
+        case .indefinitely:
+            durationInSeconds = 0
+        case .expiresAt(let expirationTime, let ttlClosure):
+            durationInSeconds = ttlClosure(expirationTime, self.clock)
+        }
+        XCTAssertEqual(durationInSeconds, 0, "Indefinite TTL should return a duration of 0.")
     }
 
     func testExpiresAtTTL() {
         // 5 seconds in the future
         let future = self.clock.now.advanced(by: .seconds(5))
         let ttl = TimeToLive.expiresAt(future)
-        let duration = ttl.durationUntilExpiration(inRelationTo: self.clock)
-        XCTAssert(duration >= 0 && duration <= 5, "Future TTL should return a duration between 0 and 5 seconds.")
+        var durationInSeconds: UInt32 = 0
+        switch ttl {
+        case .indefinitely:
+            durationInSeconds = 0
+        case .expiresAt(let expirationTime, let ttlClosure):
+            durationInSeconds = ttlClosure(expirationTime, self.clock)
+        }
+        XCTAssert(durationInSeconds >= 0 && durationInSeconds <= 5, "Future TTL should return a duration between 0 and 5 seconds.")
     }
 }

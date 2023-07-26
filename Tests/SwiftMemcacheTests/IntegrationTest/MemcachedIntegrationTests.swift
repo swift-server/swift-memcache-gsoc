@@ -121,10 +121,13 @@ final class MemcachedIntegrationTest: XCTestCase {
 
             // Set a value for a key.
             let setValue = "foo"
-            // Set TTL Expiration
+            // Set TTL Expiratio
             let now = ContinuousClock.Instant.now
             let expirationTime = now.advanced(by: .seconds(90))
-            let expiration = TimeToLive.expiresAt(expirationTime)
+            let expiration = TimeToLive.expiresAt(expirationTime) { expirationTime, clock in
+                let timeInterval = clock.now.duration(to: expirationTime)
+                return UInt32(timeInterval.components.seconds)
+            }
             try await memcachedConnection.set("bar", value: setValue, expiration: expiration)
 
             // Get value for key
@@ -158,19 +161,22 @@ final class MemcachedIntegrationTest: XCTestCase {
 
             try await memcachedConnection.set("bar", value: setValue, expiration: expiration)
 
-            let (getValue, ttl): (String?, TimeToLive?) = try await memcachedConnection.get("bar")
-
-            if let ttl {
-                let clock = ContinuousClock()
-                let durationInSeconds = ttl.durationUntilExpiration(inRelationTo: clock)
-
-                // Check if the received TTL is less than or equal to the set TTL
-                XCTAssert(durationInSeconds <= ttlValue, "Received TTL should be less than or equal to the set TTL")
-            } else {
-                fatalError("No TTL value was returned")
+            guard let getValueWithTTL: ValueAndTimeToLive<String> = try await memcachedConnection.get("bar") else {
+                fatalError("No value and TTL were returned")
             }
 
-            XCTAssertEqual(getValue, setValue, "Received value should be the same as sent")
+            let clock = ContinuousClock()
+            let durationInSeconds: UInt32
+            switch getValueWithTTL.ttl {
+            case .indefinitely:
+                durationInSeconds = 0
+            case .expiresAt(let expirationTime, let ttlClosure):
+                durationInSeconds = ttlClosure(expirationTime, clock)
+            }
+
+            // Check if the received TTL is less than or equal to the set TTL
+            XCTAssert(durationInSeconds <= ttlValue, "Received TTL should be less than or equal to the set TTL")
+            XCTAssertEqual(getValueWithTTL.value, setValue, "Received value should be the same as sent")
 
             group.cancelAll()
         }
@@ -203,20 +209,22 @@ final class MemcachedIntegrationTest: XCTestCase {
             let newExpiration = TimeToLive.expiresAt(newExpirationTime)
             _ = try await memcachedConnection.get("bar", as: String.self, newTimeToLive: newExpiration)
 
-            // Get value for key
-            let (getValueWithTTL, ttl): (String?, TimeToLive?) = try await memcachedConnection.get("bar")
-
-            if let ttl {
-                let clock = ContinuousClock()
-                let durationInSeconds = ttl.durationUntilExpiration(inRelationTo: clock)
-
-                // Check if the received TTL is less than or equal to the set TTL
-                XCTAssert(durationInSeconds <= newTTLValue, "Received TTL should be less than or equal to the updated TTL")
-            } else {
-                fatalError("No TTL value was returned")
+            guard let getValueWithTTL: ValueAndTimeToLive<String> = try await memcachedConnection.get("bar") else {
+                fatalError("No value and TTL were returned")
             }
 
-            XCTAssertEqual(getValueWithTTL, setValue, "Received value should be the same as sent")
+            let clock = ContinuousClock()
+            let durationInSeconds: UInt32
+            switch getValueWithTTL.ttl {
+            case .indefinitely:
+                durationInSeconds = 0
+            case .expiresAt(let expirationTime, let ttlClosure):
+                durationInSeconds = ttlClosure(expirationTime, clock)
+            }
+
+            // Check if the received TTL is less than or equal to the set TTL
+            XCTAssert(durationInSeconds <= newTTLValue, "Received TTL should be less than or equal to the updated TTL")
+            XCTAssertEqual(getValueWithTTL.value, setValue, "Received value should be the same as sent")
 
             group.cancelAll()
         }

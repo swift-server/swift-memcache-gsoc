@@ -48,17 +48,20 @@ public enum TimeToLive {
     /// The value should never expire.
     case indefinitely
     /// The value should expire after a specified time.
-    case expiresAt(ContinuousClock.Instant)
+    case expiresAt(ContinuousClock.Instant, (ContinuousClock.Instant, ContinuousClock) -> UInt32 = { _, _ in return 0 })
+}
 
-    /// Returns the duration in seconds between the current time and the expiration time.
-    public func durationUntilExpiration(inRelationTo clock: ContinuousClock) -> UInt32 {
-        switch self {
-        case .indefinitely:
-            return 0
-        case .expiresAt(let expiration):
-            let now = clock.now
-            let timeInterval = now.duration(to: expiration)
-            return UInt32(timeInterval.components.seconds)
-        }
+/// Struct representing a value along with its Time-To-Live (TTL) in Memcached.
+@available(macOS 13.0, *)
+public struct ValueAndTimeToLive<Value: MemcachedValue> {
+    /// The value fetched from Memcached.
+    public let value: Value
+    /// The TTL of the fetched value.
+    public let ttl: TimeToLive
+
+    /// Initializes a new instance of `ValueAndTimeToLive` with a value and its TTL.
+    public init(value: Value, ttl: TimeToLive) {
+        self.value = value
+        self.ttl = ttl
     }
 }
