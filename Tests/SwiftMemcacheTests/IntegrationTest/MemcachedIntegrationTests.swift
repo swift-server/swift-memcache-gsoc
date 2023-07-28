@@ -87,25 +87,25 @@ final class MemcachedIntegrationTest: XCTestCase {
     }
 
     @available(macOS 13.0, *)
-    func testMemcachedConnectionActor() async throws {
+    func testMemcachedConnection() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let connectionActor = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let MemcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await connectionActor.run() }
+            group.addTask { try await MemcachedConnection.run() }
 
             // Set key and value
             let setValue = "foo"
-            try await connectionActor.set("bar", value: setValue)
+            try await MemcachedConnection.set("bar", value: setValue)
 
             // Get value for key
-            let getValue: String? = try await connectionActor.get("bar")
+            let getValue: String? = try await MemcachedConnection.get("bar")
             XCTAssertEqual(getValue, setValue, "Received value should be the same as sent")
 
-            if let TimeToLive = try await connectionActor.get("bar") as ValueAndTimeToLive<String>? {
+            if let TimeToLive = try await MemcachedConnection.get("bar") as ValueAndTimeToLive<String>? {
                 switch TimeToLive.ttl {
                 case .indefinitely:
                     break
@@ -240,30 +240,30 @@ final class MemcachedIntegrationTest: XCTestCase {
     }
 
     @available(macOS 13.0, *)
-    func testMemcachedConnectionActorWithUInt() async throws {
+    func testMemcachedConnectionWithUInt() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let connectionActor = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let MemcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await connectionActor.run() }
+            group.addTask { try await MemcachedConnection.run() }
 
             // Set UInt32 value for key
             let setUInt32Value: UInt32 = 1_234_567_890
-            try await connectionActor.set("UInt32Key", value: setUInt32Value)
+            try await MemcachedConnection.set("UInt32Key", value: setUInt32Value)
 
             // Get value for UInt32 key
-            let getUInt32Value: UInt32? = try await connectionActor.get("UInt32Key")
+            let getUInt32Value: UInt32? = try await MemcachedConnection.get("UInt32Key")
             XCTAssertEqual(getUInt32Value, setUInt32Value, "Received UInt32 value should be the same as sent")
 
             // Set UInt64 value for key
             let setUInt64Value: UInt64 = 12_345_678_901_234_567_890
-            let _ = try await connectionActor.set("UInt64Key", value: setUInt64Value)
+            let _ = try await MemcachedConnection.set("UInt64Key", value: setUInt64Value)
 
             // Get value for UInt64 key
-            let getUInt64Value: UInt64? = try await connectionActor.get("UInt64Key")
+            let getUInt64Value: UInt64? = try await MemcachedConnection.get("UInt64Key")
             XCTAssertEqual(getUInt64Value, setUInt64Value, "Received UInt64 value should be the same as sent")
 
             group.cancelAll()
