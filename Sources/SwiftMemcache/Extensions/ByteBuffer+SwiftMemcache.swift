@@ -42,6 +42,7 @@ extension ByteBuffer {
     }
 }
 
+@available(macOS 13.0, *)
 extension ByteBuffer {
     /// Serialize and writes MemcachedFlags to the ByteBuffer.
     ///
@@ -58,9 +59,17 @@ extension ByteBuffer {
         }
 
         if let timeToLive = flags.timeToLive {
-            self.writeInteger(UInt8.whitespace)
-            self.writeInteger(UInt8.T)
-            self.writeIntegerAsASCII(timeToLive)
+            switch timeToLive {
+            case .indefinitely:
+                break
+            case .expiresAt(let instant):
+                let now = ContinuousClock.now
+                let duration = now.duration(to: instant)
+                let ttlSeconds = duration.components.seconds
+                self.writeInteger(UInt8.whitespace)
+                self.writeInteger(UInt8.T)
+                self.writeIntegerAsASCII(ttlSeconds)
+            }
         }
 
         if let shouldReturnTTL = flags.shouldReturnTTL, shouldReturnTTL {
@@ -70,13 +79,13 @@ extension ByteBuffer {
     }
 }
 
+@available(macOS 13.0, *)
 extension ByteBuffer {
     /// Parses flags from this `ByteBuffer`, advancing the reader index accordingly.
     ///
     /// - returns: A `MemcachedFlags` instance populated with the flags read from the buffer.
     mutating func readMemcachedFlags() -> MemcachedFlags {
         var flags = MemcachedFlags()
-        var ttlIsUnlimited = false
         while let nextByte = self.getInteger(at: self.readerIndex, as: UInt8.self) {
             switch nextByte {
             case UInt8.whitespace:
@@ -85,17 +94,14 @@ extension ByteBuffer {
             case UInt8.t:
                 self.moveReaderIndex(forwardBy: 1)
                 if let currentByte = self.getInteger(at: self.readerIndex, as: UInt8.self), currentByte == UInt8.hyphen {
-                    ttlIsUnlimited = true
+                    // If TTL is negative, set it as indefinite.
+                    flags.timeToLive = .indefinitely
                     self.moveReaderIndex(forwardBy: 1)
                 }
-                if let ttl: UInt32 = self.readIntegerFromASCII() {
-                    if ttlIsUnlimited {
-                        // If TTL is negative, set it as indefinite.
-                        flags.timeToLive = nil
-                        ttlIsUnlimited = false
-                    } else {
-                        flags.timeToLive = ttl
-                    }
+                if let ttlSeconds: Int = self.readIntegerFromASCII() {
+                    let now = ContinuousClock.now
+                    let instant = now.advanced(by: Duration.seconds(ttlSeconds))
+                    flags.timeToLive = .expiresAt(instant)
                 }
 
             case UInt8.carriageReturn:

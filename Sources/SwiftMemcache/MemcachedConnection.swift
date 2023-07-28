@@ -39,10 +39,7 @@ public actor MemcachedConnection {
             /// The stream of requests to be sent to the server.
             requestStream: AsyncStream<StreamElement>,
             /// The continuation for the request stream.
-            requestContinuation: AsyncStream<StreamElement>.Continuation,
-            /// The clock used to measure time in a continuous, monotonic manner.
-            /// This is used for time-sensitive operations such as calculating TTLs.
-            clock: ContinuousClock
+            requestContinuation: AsyncStream<StreamElement>.Continuation
         )
         case running(
             /// The allocator used to create new buffers.
@@ -52,10 +49,7 @@ public actor MemcachedConnection {
             /// The stream of requests to be sent to the server.
             requestStream: AsyncStream<StreamElement>,
             /// The continuation for the request stream.
-            requestContinuation: AsyncStream<StreamElement>.Continuation,
-            /// The clock used to measure time in a continuous, monotonic manner.
-            /// This is used for time-sensitive operations such as calculating TTLs.
-            clock: ContinuousClock
+            requestContinuation: AsyncStream<StreamElement>.Continuation
         )
         case finished
     }
@@ -85,8 +79,7 @@ public actor MemcachedConnection {
             eventLoopGroup: eventLoopGroup,
             bufferAllocator: bufferAllocator,
             requestStream: stream,
-            requestContinuation: continuation,
-            clock: ContinuousClock()
+            requestContinuation: continuation
         )
     }
 
@@ -95,7 +88,7 @@ public actor MemcachedConnection {
     /// This method connects to the Memcache server and starts handling requests. It only returns when the connection
     /// to the server is finished or the task that called this method is cancelled.
     public func run() async throws {
-        guard case .initial(let eventLoopGroup, let bufferAllocator, let stream, let continuation, let clock) = state else {
+        guard case .initial(let eventLoopGroup, let bufferAllocator, let stream, let continuation) = state else {
             throw MemcachedConnectionError.connectionShutdown
         }
 
@@ -113,13 +106,12 @@ public actor MemcachedConnection {
             bufferAllocator: bufferAllocator,
             channel: channel,
             requestStream: stream,
-            requestContinuation: continuation,
-            clock: clock
+            requestContinuation: continuation
         )
 
         var iterator = channel.inboundStream.makeAsyncIterator()
         switch self.state {
-        case .running(_, let channel, let requestStream, let requestContinuation, _):
+        case .running(_, let channel, let requestStream, let requestContinuation):
             for await (request, continuation) in requestStream {
                 do {
                     try await channel.outboundWriter.write(request)
@@ -148,8 +140,8 @@ public actor MemcachedConnection {
     /// Send a request to the Memcached server and returns a `MemcachedResponse`.
     private func sendRequest(_ request: MemcachedRequest) async throws -> MemcachedResponse {
         switch self.state {
-        case .initial(_, _, _, let requestContinuation, _),
-             .running(_, _, _, let requestContinuation, _):
+        case .initial(_, _, _, let requestContinuation),
+             .running(_, _, _, let requestContinuation):
 
             return try await withCheckedThrowingContinuation { continuation in
                 switch requestContinuation.yield((request, continuation)) {
@@ -175,7 +167,7 @@ public actor MemcachedConnection {
     /// - Returns: A `Value` containing the fetched value, or `nil` if no value was found.
     public func get<Value: MemcachedValue>(_ key: String, as valueType: Value.Type = Value.self) async throws -> Value? {
         switch self.state {
-        case .initial(_, _, _, _, _),
+        case .initial(_, _, _, _),
              .running:
 
             var flags = MemcachedFlags()
@@ -206,17 +198,11 @@ public actor MemcachedConnection {
     /// - Throws: A `MemcachedConnectionError` if the connection is shutdown or if there's an unexpected nil response.
     public func get<Value: MemcachedValue>(_ key: String, as valueType: Value.Type = Value.self, newTimeToLive: TimeToLive) async throws -> Value? {
         switch self.state {
-        case .initial(_, _, _, _, let clock),
-             .running(_, _, _, _, let clock):
+        case .initial(_, _, _, _),
+             .running:
 
             var flags = MemcachedFlags()
-            switch newTimeToLive {
-            case .indefinitely:
-                flags.timeToLive = 0
-            case .expiresAt(let expirationTime, let ttlClosure):
-                flags.timeToLive = ttlClosure(expirationTime, clock)
-            }
-
+            flags.timeToLive = newTimeToLive
             flags.shouldReturnValue = true
 
             let command = MemcachedRequest.GetCommand(key: key, flags: flags)
@@ -244,8 +230,8 @@ public actor MemcachedConnection {
     /// - Throws: A `MemcachedConnectionError` if the connection is shutdown.
     public func get<Value: MemcachedValue>(_ key: String, as valueType: Value.Type = Value.self) async throws -> ValueAndTimeToLive<Value>? {
         switch self.state {
-        case .initial(_, _, _, _, let clock),
-             .running(_, _, _, _, let clock):
+        case .initial(_, _, _, _),
+             .running:
 
             var flags = MemcachedFlags()
             flags.shouldReturnValue = true
@@ -264,12 +250,7 @@ public actor MemcachedConnection {
                 throw MemcachedConnectionError.unexpectedNilResponse
             }
 
-            let ttl: TimeToLive
-            if let ttlSeconds = response.flags?.timeToLive {
-                ttl = TimeToLive.expiresAt(clock.now.advanced(by: Duration.seconds(ttlSeconds)))
-            } else {
-                ttl = TimeToLive.indefinitely
-            }
+            let ttl = response.flags?.timeToLive ?? TimeToLive.indefinitely
 
             return ValueAndTimeToLive(value: value, ttl: ttl)
 
@@ -291,20 +272,15 @@ public actor MemcachedConnection {
     /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
     public func set(_ key: String, value: some MemcachedValue, expiration: TimeToLive = .indefinitely) async throws {
         switch self.state {
-        case .initial(_, let bufferAllocator, _, _, let clock),
-             .running(let bufferAllocator, _, _, _, let clock):
+        case .initial(_, let bufferAllocator, _, _),
+             .running(let bufferAllocator, _, _, _):
 
             var buffer = bufferAllocator.buffer(capacity: 0)
             value.writeToBuffer(&buffer)
             var flags: MemcachedFlags?
 
             flags = MemcachedFlags()
-            switch expiration {
-            case .indefinitely:
-                flags?.timeToLive = 0
-            case .expiresAt(let expirationTime, let ttlClosure):
-                flags?.timeToLive = ttlClosure(expirationTime, clock)
-            }
+            flags?.timeToLive = expiration
 
             let command = MemcachedRequest.SetCommand(key: key, value: buffer, flags: flags)
             let request = MemcachedRequest.set(command)

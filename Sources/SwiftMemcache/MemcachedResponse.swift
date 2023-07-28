@@ -14,6 +14,7 @@
 
 import NIOCore
 
+@available(macOS 13.0, *)
 struct MemcachedResponse {
     enum ReturnCode {
         case HD

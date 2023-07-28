@@ -17,6 +17,7 @@ import NIOPosix
 @testable import SwiftMemcache
 import XCTest
 
+@available(macOS 13.0, *)
 final class MemcachedIntegrationTest: XCTestCase {
     var channel: ClientBootstrap!
     var group: EventLoopGroup!
@@ -121,13 +122,10 @@ final class MemcachedIntegrationTest: XCTestCase {
 
             // Set a value for a key.
             let setValue = "foo"
-            // Set TTL Expiratio
+            // Set TTL Expiration
             let now = ContinuousClock.Instant.now
             let expirationTime = now.advanced(by: .seconds(90))
-            let expiration = TimeToLive.expiresAt(expirationTime) { expirationTime, clock in
-                let timeInterval = clock.now.duration(to: expirationTime)
-                return UInt32(timeInterval.components.seconds)
-            }
+            let expiration = TimeToLive.expiresAt(expirationTime)
             try await memcachedConnection.set("bar", value: setValue, expiration: expiration)
 
             // Get value for key
@@ -165,13 +163,13 @@ final class MemcachedIntegrationTest: XCTestCase {
                 fatalError("No value and TTL were returned")
             }
 
-            let clock = ContinuousClock()
             let durationInSeconds: UInt32
             switch getValueWithTTL.ttl {
             case .indefinitely:
                 durationInSeconds = 0
-            case .expiresAt(let expirationTime, let ttlClosure):
-                durationInSeconds = ttlClosure(expirationTime, clock)
+            case .expiresAt(let expirationTime):
+                let timeUntilExpiration = now.duration(to: expirationTime)
+                durationInSeconds = UInt32(timeUntilExpiration.components.seconds)
             }
 
             // Check if the received TTL is less than or equal to the set TTL
@@ -213,13 +211,13 @@ final class MemcachedIntegrationTest: XCTestCase {
                 fatalError("No value and TTL were returned")
             }
 
-            let clock = ContinuousClock()
             let durationInSeconds: UInt32
             switch getValueWithTTL.ttl {
             case .indefinitely:
                 durationInSeconds = 0
-            case .expiresAt(let expirationTime, let ttlClosure):
-                durationInSeconds = ttlClosure(expirationTime, clock)
+            case .expiresAt(let expirationTime):
+                let timeUntilExpiration = now.duration(to: expirationTime)
+                durationInSeconds = UInt32(timeUntilExpiration.components.seconds)
             }
 
             // Check if the received TTL is less than or equal to the set TTL

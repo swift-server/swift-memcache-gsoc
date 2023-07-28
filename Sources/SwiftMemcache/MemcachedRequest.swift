@@ -13,7 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 import NIOCore
-
+@available(macOS 13.0, *)
 enum MemcachedRequest {
     struct SetCommand {
         let key: String

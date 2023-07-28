@@ -17,6 +17,7 @@ import NIOEmbedded
 @testable import SwiftMemcache
 import XCTest
 
+@available(macOS 13.0, *)
 final class MemcachedResponseDecoderTests: XCTestCase {
     var decoder: MemcachedResponseDecoder!
 
@@ -56,7 +57,17 @@ final class MemcachedResponseDecoderTests: XCTestCase {
             if let flags = response.flags, let shouldReturnTTL = flags.shouldReturnTTL, shouldReturnTTL {
                 buffer.writeInteger(UInt8.whitespace)
                 buffer.writeInteger(UInt8.t)
-                buffer.writeIntegerAsASCII((response.flags?.timeToLive!)!)
+                if let timeToLive = flags.timeToLive {
+                    switch timeToLive {
+                    case .indefinitely:
+                        break
+                    case .expiresAt(let instant):
+                        let now = ContinuousClock.now
+                        let duration = now.duration(to: instant)
+                        let ttlSeconds = duration.components.seconds
+                        buffer.writeIntegerAsASCII(ttlSeconds)
+                    }
+                }
             }
 
             buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
@@ -156,7 +167,8 @@ final class MemcachedResponseDecoderTests: XCTestCase {
 
         var flags = MemcachedFlags()
         flags.shouldReturnTTL = true
-        flags.timeToLive = 90
+        let clock = ContinuousClock()
+        flags.timeToLive = .expiresAt(clock.now.advanced(by: Duration.seconds(90)))
         let valueResponse = MemcachedResponse(returnCode: .VA, dataLength: 2, flags: flags, value: valueBuffer)
         var buffer = self.makeMemcachedResponseByteBuffer(from: valueResponse)
 
@@ -171,7 +183,17 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         if let decoded = output {
             XCTAssertEqual(decoded.returnCode, .VA)
             XCTAssertEqual(decoded.dataLength, 2)
-            XCTAssertEqual(decoded.flags?.timeToLive, 90, "TTL value is not as expected")
+
+            switch decoded.flags?.timeToLive {
+            case .expiresAt(let instant):
+                let now = ContinuousClock.now
+                let duration = now.duration(to: instant)
+                let ttlSeconds = duration.components.seconds
+                XCTAssertLessThanOrEqual(ttlSeconds, 90, "TTL value is greater than 90")
+            default:
+                XCTFail("Unexpected timeToLive value found")
+            }
+
             if let value = decoded.value {
                 var copiedBuffer = value
                 XCTAssertEqual(copiedBuffer.readString(length: Int(decoded.dataLength!)), "hi")

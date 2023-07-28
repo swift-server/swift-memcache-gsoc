@@ -15,6 +15,7 @@
 @testable import SwiftMemcache
 import XCTest
 
+@available(macOS 13.0, *)
 final class MemcachedFlagsTests: XCTestCase {
     func testVFlag() {
         var flags = MemcachedFlags()
@@ -28,9 +29,11 @@ final class MemcachedFlagsTests: XCTestCase {
 
     func testTTLFlag() {
         var flags = MemcachedFlags()
-        flags.timeToLive = 60
-        if let timeToLive = flags.timeToLive {
-            XCTAssertEqual(timeToLive, 60)
+        let now = ContinuousClock.Instant.now
+        let expirationTime = now.advanced(by: .seconds(60))
+        flags.timeToLive = .expiresAt(expirationTime)
+        if case .expiresAt(let timeToLive)? = flags.timeToLive {
+            XCTAssertEqual(timeToLive, expirationTime)
         } else {
             XCTFail("Flag timeToLive is nil")
         }

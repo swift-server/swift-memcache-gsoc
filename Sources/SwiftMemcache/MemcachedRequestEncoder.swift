@@ -15,6 +15,7 @@
 import NIOCore
 import NIOPosix
 
+@available(macOS 13.0, *)
 struct MemcachedRequestEncoder: MessageToByteEncoder {
     typealias OutboundIn = MemcachedRequest
 

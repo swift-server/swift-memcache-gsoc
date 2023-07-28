@@ -16,6 +16,7 @@ import NIOCore
 @testable import SwiftMemcache
 import XCTest
 
+@available(macOS 13.0, *)
 final class MemcachedRequestEncoderTests: XCTestCase {
     var encoder: MemcachedRequestEncoder!
 
@@ -48,7 +49,9 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         var buffer = ByteBufferAllocator().buffer(capacity: 2)
         buffer.writeString("hi")
         var flags = MemcachedFlags()
-        flags.timeToLive = 90
+
+        let clock = ContinuousClock()
+        flags.timeToLive = .expiresAt(clock.now.advanced(by: Duration.seconds(90)))
         let command = MemcachedRequest.SetCommand(key: "foo", value: buffer, flags: flags)
         let request = MemcachedRequest.set(command)
 
@@ -60,7 +63,7 @@ final class MemcachedRequestEncoderTests: XCTestCase {
             XCTFail("Encoding failed with error: \(error)")
         }
 
-        let expectedEncodedData = "ms foo 2 T90\r\nhi\r\n"
+        let expectedEncodedData = "ms foo 2 T89\r\nhi\r\n"
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
     }
 

@@ -18,6 +18,7 @@
 /// The 'v' flag for the meta get command dictates whether the item value should be returned in the data block.
 /// The 'T' flag is used for both the meta get and meta set commands to specify the Time-To-Live (TTL) for an item.
 /// The 't' flag for the meta get command indicates whether the Time-To-Live (TTL) for the item should be returned.
+@available(macOS 13.0, *)
 struct MemcachedFlags {
     /// Flag 'v' for the 'mg' (meta get) command.
     ///
@@ -29,7 +30,7 @@ struct MemcachedFlags {
     ///
     /// Represents the Time-To-Live (TTL) for an item, in seconds.
     /// If set, the item is considered to be expired after this number of seconds.
-    var timeToLive: UInt32?
+    var timeToLive: TimeToLive?
 
     /// Flag 't' for the 'mg' (meta get) command.
     ///
@@ -40,6 +41,7 @@ struct MemcachedFlags {
     init() {}
 }
 
+@available(macOS 13.0, *)
 extension MemcachedFlags: Hashable {}
 
 /// Enum representing the Time-To-Live (TTL) of a Memcached value.
@@ -48,20 +50,50 @@ public enum TimeToLive {
     /// The value should never expire.
     case indefinitely
     /// The value should expire after a specified time.
-    case expiresAt(ContinuousClock.Instant, (ContinuousClock.Instant, ContinuousClock) -> UInt32 = { _, _ in return 0 })
+    case expiresAt(ContinuousClock.Instant)
 }
 
 /// Struct representing a value along with its Time-To-Live (TTL) in Memcached.
 @available(macOS 13.0, *)
 public struct ValueAndTimeToLive<Value: MemcachedValue> {
     /// The value fetched from Memcached.
-    public let value: Value
+    public var value: Value
     /// The TTL of the fetched value.
-    public let ttl: TimeToLive
+    public var ttl: TimeToLive
 
     /// Initializes a new instance of `ValueAndTimeToLive` with a value and its TTL.
     public init(value: Value, ttl: TimeToLive) {
         self.value = value
         self.ttl = ttl
+    }
+}
+
+@available(macOS 13.0, *)
+extension MemcachedFlags: Equatable {
+    static func == (lhs: MemcachedFlags, rhs: MemcachedFlags) -> Bool {
+        guard lhs.shouldReturnValue == rhs.shouldReturnValue, lhs.shouldReturnTTL == rhs.shouldReturnTTL else {
+            return false
+        }
+        switch (lhs.timeToLive, rhs.timeToLive) {
+        case (.indefinitely?, .indefinitely?), (nil, nil):
+            return true
+        case (.expiresAt(let lhsInstant)?, .expiresAt(let rhsInstant)?):
+            return lhsInstant == rhsInstant
+        default:
+            return false
+        }
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(self.shouldReturnValue)
+        hasher.combine(self.shouldReturnTTL)
+        switch self.timeToLive {
+        case .indefinitely:
+            hasher.combine("indefinitely")
+        case .expiresAt(let instant):
+            hasher.combine(instant)
+        case .none:
+            break
+        }
     }
 }
