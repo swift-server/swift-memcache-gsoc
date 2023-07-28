@@ -68,8 +68,20 @@ public struct ValueAndTimeToLive<Value: MemcachedValue> {
     }
 }
 
+/// Extension that makes `MemcachedFlags` conform to the `Equatable` protocol.
+///
+/// This allows instances of `MemcachedFlags` to be compared for equality using the `==` operator.
+/// Two `MemcachedFlags` instances are considered equal if they have the same `shouldReturnValue`, `shouldReturnTTL`, and `timeToLive` properties.
 @available(macOS 13.0, *)
 extension MemcachedFlags: Equatable {
+    /// Compares two `MemcachedFlags` instances for equality.
+    ///
+    /// Two `MemcachedFlags` instances are considered equal if they have the same `shouldReturnValue`, `shouldReturnTTL`, and `timeToLive` properties.
+    ///
+    /// - Parameters:
+    ///   - lhs: A `MemcachedFlags` instance.
+    ///   - rhs: Another `MemcachedFlags` instance.
+    /// - Returns: `true` if the two instances are equal, `false` otherwise.
     static func == (lhs: MemcachedFlags, rhs: MemcachedFlags) -> Bool {
         guard lhs.shouldReturnValue == rhs.shouldReturnValue, lhs.shouldReturnTTL == rhs.shouldReturnTTL else {
             return false
@@ -84,6 +96,11 @@ extension MemcachedFlags: Equatable {
         }
     }
 
+    /// Provides a hash value for a `MemcachedFlags` instance.
+    ///
+    /// The hash value is composed from the `shouldReturnValue`, `shouldReturnTTL`, and `timeToLive` properties.
+    ///
+    /// - Parameter hasher: The hasher to use when combining the components of the instance.
     func hash(into hasher: inout Hasher) {
         hasher.combine(self.shouldReturnValue)
         hasher.combine(self.shouldReturnTTL)
