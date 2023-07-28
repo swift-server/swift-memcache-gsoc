@@ -105,6 +105,17 @@ final class MemcachedIntegrationTest: XCTestCase {
             let getValue: String? = try await connectionActor.get("bar")
             XCTAssertEqual(getValue, setValue, "Received value should be the same as sent")
 
+            if let TimeToLive = try await connectionActor.get("bar") as ValueAndTimeToLive<String>? {
+                switch TimeToLive.ttl {
+                case .indefinitely:
+                    break
+                default:
+                    XCTFail("Expected .indefinitely for ttl but got something else.")
+                }
+            } else {
+                XCTFail("Failed to get ValueAndTimeToLive from connection actor.")
+            }
+
             group.cancelAll()
         }
     }

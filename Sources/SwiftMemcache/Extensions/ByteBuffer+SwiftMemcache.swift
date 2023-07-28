@@ -96,7 +96,7 @@ extension ByteBuffer {
                 if let currentByte = self.getInteger(at: self.readerIndex, as: UInt8.self), currentByte == UInt8.hyphen {
                     // If TTL is negative, set it as indefinite.
                     flags.timeToLive = .indefinitely
-                    self.moveReaderIndex(forwardBy: 1)
+                    self.moveReaderIndex(forwardBy: 2)
                 }
                 if let ttlSeconds: Int = self.readIntegerFromASCII() {
                     let now = ContinuousClock.now
