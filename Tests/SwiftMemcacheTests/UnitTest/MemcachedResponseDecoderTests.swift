@@ -52,24 +52,6 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         // Write the data length <size> to the buffer.
         if let dataLength = response.dataLength, response.returnCode == .VA {
             buffer.writeIntegerAsASCII(dataLength)
-
-            // parse flags if there are flags
-            if let flags = response.flags, let shouldReturnTTL = flags.shouldReturnTTL, shouldReturnTTL {
-                buffer.writeInteger(UInt8.whitespace)
-                buffer.writeInteger(UInt8.t)
-                if let timeToLive = flags.timeToLive {
-                    switch timeToLive {
-                    case .indefinitely:
-                        break
-                    case .expiresAt(let instant):
-                        let now = ContinuousClock.now
-                        let duration = now.duration(to: instant)
-                        let ttlSeconds = duration.components.seconds
-                        buffer.writeIntegerAsASCII(ttlSeconds)
-                    }
-                }
-            }
-
             buffer.writeBytes([UInt8.carriageReturn, UInt8.newline])
 
             // Write the value <data block> to the buffer if it exists
@@ -149,51 +131,6 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         if let decoded = output {
             XCTAssertEqual(decoded.returnCode, .VA)
             XCTAssertEqual(decoded.dataLength, 2)
-            if let value = decoded.value {
-                var copiedBuffer = value
-                XCTAssertEqual(copiedBuffer.readString(length: Int(decoded.dataLength!)), "hi")
-            } else {
-                XCTFail("Decoded value was not found.")
-            }
-        } else {
-            XCTFail("Failed to decode the inbound response.")
-        }
-    }
-
-    func testDecodeValueTTLResponse() throws {
-        let allocator = ByteBufferAllocator()
-        var valueBuffer = allocator.buffer(capacity: 8)
-        valueBuffer.writeString("hi")
-
-        var flags = MemcachedFlags()
-        flags.shouldReturnTTL = true
-        let clock = ContinuousClock()
-        flags.timeToLive = .expiresAt(clock.now.advanced(by: Duration.seconds(90)))
-        let valueResponse = MemcachedResponse(returnCode: .VA, dataLength: 2, flags: flags, value: valueBuffer)
-        var buffer = self.makeMemcachedResponseByteBuffer(from: valueResponse)
-
-        // Pass our response through the decoder
-        var output: MemcachedResponse? = nil
-        do {
-            output = try self.decoder.decode(buffer: &buffer)
-        } catch {
-            XCTFail("Decoding failed with error: \(error)")
-        }
-        // Check the decoded response
-        if let decoded = output {
-            XCTAssertEqual(decoded.returnCode, .VA)
-            XCTAssertEqual(decoded.dataLength, 2)
-
-            switch decoded.flags?.timeToLive {
-            case .expiresAt(let instant):
-                let now = ContinuousClock.now
-                let duration = now.duration(to: instant)
-                let ttlSeconds = duration.components.seconds
-                XCTAssertLessThanOrEqual(ttlSeconds, 90, "TTL value is greater than 90")
-            default:
-                XCTFail("Unexpected timeToLive value found")
-            }
-
             if let value = decoded.value {
                 var copiedBuffer = value
                 XCTAssertEqual(copiedBuffer.readString(length: Int(decoded.dataLength!)), "hi")

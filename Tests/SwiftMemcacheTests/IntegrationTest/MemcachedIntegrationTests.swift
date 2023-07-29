@@ -104,18 +104,6 @@ final class MemcachedIntegrationTest: XCTestCase {
             // Get value for key
             let getValue: String? = try await MemcachedConnection.get("bar")
             XCTAssertEqual(getValue, setValue, "Received value should be the same as sent")
-
-            if let TimeToLive = try await MemcachedConnection.get("bar") as ValueAndTimeToLive<String>? {
-                switch TimeToLive.ttl {
-                case .indefinitely:
-                    break
-                default:
-                    XCTFail("Expected .indefinitely for ttl but got something else.")
-                }
-            } else {
-                XCTFail("Failed to get ValueAndTimeToLive from connection actor.")
-            }
-
             group.cancelAll()
         }
     }
@@ -148,51 +136,7 @@ final class MemcachedIntegrationTest: XCTestCase {
     }
 
     @available(macOS 13.0, *)
-    func testFetchAndPrintValueWithTTL() async throws {
-        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        defer {
-            XCTAssertNoThrow(try! group.syncShutdownGracefully())
-        }
-        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
-
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await memcachedConnection.run() }
-
-            // Set key and value with a known TTL
-            let setValue = "foo"
-
-            // TTL in seconds
-            let ttlValue = 23
-            // Set TTL Expiration
-            let now = ContinuousClock.Instant.now
-            let expirationTime = now.advanced(by: .seconds(ttlValue))
-            let expiration = TimeToLive.expiresAt(expirationTime)
-
-            try await memcachedConnection.set("bar", value: setValue, expiration: expiration)
-
-            guard let getValueWithTTL: ValueAndTimeToLive<String> = try await memcachedConnection.get("bar") else {
-                fatalError("No value and TTL were returned")
-            }
-
-            let durationInSeconds: UInt32
-            switch getValueWithTTL.ttl {
-            case .indefinitely:
-                durationInSeconds = 0
-            case .expiresAt(let expirationTime):
-                let timeUntilExpiration = now.duration(to: expirationTime)
-                durationInSeconds = UInt32(timeUntilExpiration.components.seconds)
-            }
-
-            // Check if the received TTL is less than or equal to the set TTL
-            XCTAssert(durationInSeconds <= ttlValue, "Received TTL should be less than or equal to the set TTL")
-            XCTAssertEqual(getValueWithTTL.value, setValue, "Received value should be the same as sent")
-
-            group.cancelAll()
-        }
-    }
-
-    @available(macOS 13.0, *)
-    func testUpdateTTL() async throws {
+    func testTouch() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
@@ -216,24 +160,76 @@ final class MemcachedIntegrationTest: XCTestCase {
             let newTTLValue = 2222
             let newExpirationTime = now.advanced(by: .seconds(newTTLValue))
             let newExpiration = TimeToLive.expiresAt(newExpirationTime)
-            _ = try await memcachedConnection.get("bar", as: String.self, newTimeToLive: newExpiration)
+            _ = try await memcachedConnection.touch("bar", as: String.self, newTimeToLive: newExpiration)
 
-            guard let getValueWithTTL: ValueAndTimeToLive<String> = try await memcachedConnection.get("bar") else {
-                fatalError("No value and TTL were returned")
-            }
+            group.cancelAll()
+        }
+    }
 
-            let durationInSeconds: UInt32
-            switch getValueWithTTL.ttl {
-            case .indefinitely:
-                durationInSeconds = 0
-            case .expiresAt(let expirationTime):
-                let timeUntilExpiration = now.duration(to: expirationTime)
-                durationInSeconds = UInt32(timeUntilExpiration.components.seconds)
-            }
+    @available(macOS 13.0, *)
+    func testTouchWithIndefiniteExpiration() async throws {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
-            // Check if the received TTL is less than or equal to the set TTL
-            XCTAssert(durationInSeconds <= newTTLValue, "Received TTL should be less than or equal to the updated TTL")
-            XCTAssertEqual(getValueWithTTL.value, setValue, "Received value should be the same as sent")
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await memcachedConnection.run() }
+
+            // Set key and value with a known TTL
+            let setValue = "foo"
+            // Initial TTL in seconds
+            let initialTTLValue = 5
+            let now = ContinuousClock.Instant.now
+            let expirationTime = now.advanced(by: .seconds(initialTTLValue))
+            let expiration = TimeToLive.expiresAt(expirationTime)
+            try await memcachedConnection.set("bar", value: setValue, expiration: expiration)
+
+            // Update the TTL for the key to indefinite
+            let newExpiration = TimeToLive.indefinitely
+            _ = try await memcachedConnection.touch("bar", as: String.self, newTimeToLive: newExpiration)
+
+            // Wait for more than the initial TTL duration
+            // Sleep for 6 seconds
+            try await Task.sleep(nanoseconds: UInt64(6 * 1_000_000_000))
+
+            // Get the value and make sure it's still there
+            let value: String? = try await memcachedConnection.get("bar", as: String.self)
+            XCTAssertNotNil(value, "Expected value to exist after TTL expiration time")
+            XCTAssertEqual(value, setValue, "Expected value to match set value after TTL expiration time")
+
+            group.cancelAll()
+        }
+    }
+
+    @available(macOS 13.0, *)
+    func testValueWithLongExpiration() async throws {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await memcachedConnection.run() }
+
+            // Set key and value with a known TTL
+            let setValue = "foo"
+            // Initial TTL in seconds
+            let initialTTLValue = 60 * 60 * 24 * 30 + 5 // 30 days + 5 seconds
+            let now = ContinuousClock.Instant.now
+            let expirationTime = now.advanced(by: .seconds(initialTTLValue))
+            let expiration = TimeToLive.expiresAt(expirationTime)
+            try await memcachedConnection.set("bar", value: setValue, expiration: expiration)
+
+            // Wait for 6 seconds
+            try await Task.sleep(nanoseconds: UInt64(6 * 1_000_000_000)) // Sleep for 6 seconds
+
+            // Get the value and make sure it's still there
+            let value: String? = try await memcachedConnection.get("bar", as: String.self)
+            XCTAssertNotNil(value, "Expected value to exist after waiting for 6 seconds")
+            XCTAssertEqual(value, setValue, "Expected value to match set value after waiting for 6 seconds")
 
             group.cancelAll()
         }

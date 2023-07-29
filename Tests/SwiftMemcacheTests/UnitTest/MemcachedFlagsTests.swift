@@ -38,14 +38,4 @@ final class MemcachedFlagsTests: XCTestCase {
             XCTFail("Flag timeToLive is nil")
         }
     }
-
-    func testShouldReturnTTLFlag() {
-        var flags = MemcachedFlags()
-        flags.shouldReturnTTL = true
-        if let shouldReturnTTL = flags.shouldReturnTTL {
-            XCTAssertTrue(shouldReturnTTL)
-        } else {
-            XCTFail("Flag shouldReturnTTL is nil")
-        }
-    }
 }

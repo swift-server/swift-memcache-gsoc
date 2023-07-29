@@ -188,71 +188,28 @@ public actor MemcachedConnection {
         }
     }
 
-    // MARK: - Updating Time-To-Live
+    // MARK: - Touch
 
-    /// Fetch the value and set its time-to-live for a key.
+    /// Update the time-to-live for a key.
+    ///
+    /// This method changes the expiration time of an existing item without fetching it. If the key does not exist or if the new expiration time is already passed, the operation will not succeed.
     ///
     /// - Parameters:
-    ///   - key: The key to fetch the value and update the time-to-live for.
-    ///   - newTimeToLive: The new time-to-live. If `nil`, the TTL will not be updated.
+    ///   - key: The key to update the time-to-live for.
+    ///   - newTimeToLive: The new time-to-live.
     /// - Throws: A `MemcachedConnectionError` if the connection is shutdown or if there's an unexpected nil response.
-    public func get<Value: MemcachedValue>(_ key: String, as valueType: Value.Type = Value.self, newTimeToLive: TimeToLive) async throws -> Value? {
+    public func touch<Value: MemcachedValue>(_ key: String, as valueType: Value.Type = Value.self, newTimeToLive: TimeToLive) async throws {
         switch self.state {
         case .initial(_, _, _, _),
              .running:
 
             var flags = MemcachedFlags()
             flags.timeToLive = newTimeToLive
-            flags.shouldReturnValue = true
 
             let command = MemcachedRequest.GetCommand(key: key, flags: flags)
             let request = MemcachedRequest.get(command)
 
-            let response = try await self.sendRequest(request).value
-
-            if var unwrappedResponse = response {
-                return Value.readFromBuffer(&unwrappedResponse)
-            } else {
-                throw MemcachedConnectionError.unexpectedNilResponse
-            }
-
-        case .finished:
-            throw MemcachedConnectionError.connectionShutdown
-        }
-    }
-
-    // MARK: - Fetching TTL
-
-    /// Fetch the value and its time-to-live for a key.
-    ///
-    /// - Parameter key: The key to fetch the value and time-to-live for.
-    /// - Returns: An instance of `ValueAndTimeToLive` containing the fetched value and its TTL, or `nil` if no value was found.
-    /// - Throws: A `MemcachedConnectionError` if the connection is shutdown.
-    public func get<Value: MemcachedValue>(_ key: String, as valueType: Value.Type = Value.self) async throws -> ValueAndTimeToLive<Value>? {
-        switch self.state {
-        case .initial(_, _, _, _),
-             .running:
-
-            var flags = MemcachedFlags()
-            flags.shouldReturnValue = true
-            flags.shouldReturnTTL = true
-
-            let command = MemcachedRequest.GetCommand(key: key, flags: flags)
-            let request = MemcachedRequest.get(command)
-
-            let response = try await sendRequest(request)
-
-            guard var valueData = response.value else {
-                throw MemcachedConnectionError.unexpectedNilResponse
-            }
-
-            guard let value = Value.readFromBuffer(&valueData) else {
-                throw MemcachedConnectionError.unexpectedNilResponse
-            }
-
-            let ttl = response.flags?.timeToLive ?? TimeToLive.indefinitely
-
-            return ValueAndTimeToLive(value: value, ttl: ttl)
+            _ = try await self.sendRequest(request)
 
         case .finished:
             throw MemcachedConnectionError.connectionShutdown

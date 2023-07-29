@@ -32,12 +32,6 @@ struct MemcachedFlags {
     /// If set, the item is considered to be expired after this number of seconds.
     var timeToLive: TimeToLive?
 
-    /// Flag 't' for the 'mg' (meta get) command.
-    ///
-    /// If true, the Time-To-Live (TTL) for the item is returned.
-    /// If false, the TTL for the item is not returned.
-    var shouldReturnTTL: Bool?
-
     init() {}
 }
 
@@ -53,37 +47,22 @@ public enum TimeToLive {
     case expiresAt(ContinuousClock.Instant)
 }
 
-/// Struct representing a value along with its Time-To-Live (TTL) in Memcached.
-@available(macOS 13.0, *)
-public struct ValueAndTimeToLive<Value: MemcachedValue> {
-    /// The value fetched from Memcached.
-    public var value: Value
-    /// The TTL of the fetched value.
-    public var ttl: TimeToLive
-
-    /// Initializes a new instance of `ValueAndTimeToLive` with a value and its TTL.
-    public init(value: Value, ttl: TimeToLive) {
-        self.value = value
-        self.ttl = ttl
-    }
-}
-
 /// Extension that makes `MemcachedFlags` conform to the `Equatable` protocol.
 ///
 /// This allows instances of `MemcachedFlags` to be compared for equality using the `==` operator.
-/// Two `MemcachedFlags` instances are considered equal if they have the same `shouldReturnValue`, `shouldReturnTTL`, and `timeToLive` properties.
+/// Two `MemcachedFlags` instances are considered equal if they have the same `shouldReturnValue`, and `timeToLive` properties.
 @available(macOS 13.0, *)
 extension MemcachedFlags: Equatable {
     /// Compares two `MemcachedFlags` instances for equality.
     ///
-    /// Two `MemcachedFlags` instances are considered equal if they have the same `shouldReturnValue`, `shouldReturnTTL`, and `timeToLive` properties.
+    /// Two `MemcachedFlags` instances are considered equal if they have the same `shouldReturnValue`, and `timeToLive` properties.
     ///
     /// - Parameters:
     ///   - lhs: A `MemcachedFlags` instance.
     ///   - rhs: Another `MemcachedFlags` instance.
     /// - Returns: `true` if the two instances are equal, `false` otherwise.
     static func == (lhs: MemcachedFlags, rhs: MemcachedFlags) -> Bool {
-        guard lhs.shouldReturnValue == rhs.shouldReturnValue, lhs.shouldReturnTTL == rhs.shouldReturnTTL else {
+        guard lhs.shouldReturnValue == rhs.shouldReturnValue else {
             return false
         }
         switch (lhs.timeToLive, rhs.timeToLive) {
@@ -98,12 +77,11 @@ extension MemcachedFlags: Equatable {
 
     /// Provides a hash value for a `MemcachedFlags` instance.
     ///
-    /// The hash value is composed from the `shouldReturnValue`, `shouldReturnTTL`, and `timeToLive` properties.
+    /// The hash value is composed from the `shouldReturnValue`,  and `timeToLive` properties.
     ///
     /// - Parameter hasher: The hasher to use when combining the components of the instance.
     func hash(into hasher: inout Hasher) {
         hasher.combine(self.shouldReturnValue)
-        hasher.combine(self.shouldReturnTTL)
         switch self.timeToLive {
         case .indefinitely:
             hasher.combine("indefinitely")

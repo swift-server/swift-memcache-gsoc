@@ -12,6 +12,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Foundation
 import NIOCore
 
 extension ByteBuffer {
@@ -61,20 +62,30 @@ extension ByteBuffer {
         if let timeToLive = flags.timeToLive {
             switch timeToLive {
             case .indefinitely:
-                break
+                self.writeInteger(UInt8.whitespace)
+                self.writeInteger(UInt8.T)
+                self.writeIntegerAsASCII(UInt8.zero)
             case .expiresAt(let instant):
                 let now = ContinuousClock.now
                 let duration = now.duration(to: instant)
                 let ttlSeconds = duration.components.seconds
-                self.writeInteger(UInt8.whitespace)
-                self.writeInteger(UInt8.T)
-                self.writeIntegerAsASCII(ttlSeconds)
-            }
-        }
+                let maximumOffset = 60 * 60 * 24 * 30
 
-        if let shouldReturnTTL = flags.shouldReturnTTL, shouldReturnTTL {
-            self.writeInteger(UInt8.whitespace)
-            self.writeInteger(UInt8.t)
+                if ttlSeconds > maximumOffset {
+                    // The TTL is treated as Unix time.
+                    var timespec = timespec()
+                    timespec_get(&timespec, TIME_UTC)
+                    let timeIntervalNow = Double(timespec.tv_sec) + Double(timespec.tv_nsec) / 1_000_000_000
+                    let ttlUnixTime = Int32(timeIntervalNow) + Int32(ttlSeconds)
+                    self.writeInteger(UInt8.whitespace)
+                    self.writeInteger(UInt8.T)
+                    self.writeIntegerAsASCII(ttlUnixTime)
+                } else {
+                    self.writeInteger(UInt8.whitespace)
+                    self.writeInteger(UInt8.T)
+                    self.writeIntegerAsASCII(ttlSeconds)
+                }
+            }
         }
     }
 }
@@ -85,25 +96,12 @@ extension ByteBuffer {
     ///
     /// - returns: A `MemcachedFlags` instance populated with the flags read from the buffer.
     mutating func readMemcachedFlags() -> MemcachedFlags {
-        var flags = MemcachedFlags()
+        let flags = MemcachedFlags()
         while let nextByte = self.getInteger(at: self.readerIndex, as: UInt8.self) {
             switch nextByte {
             case UInt8.whitespace:
                 self.moveReaderIndex(forwardBy: 1)
                 continue
-            case UInt8.t:
-                self.moveReaderIndex(forwardBy: 1)
-                if let currentByte = self.getInteger(at: self.readerIndex, as: UInt8.self), currentByte == UInt8.hyphen {
-                    // If TTL is negative, set it as indefinite.
-                    flags.timeToLive = .indefinitely
-                    self.moveReaderIndex(forwardBy: 2)
-                }
-                if let ttlSeconds: Int = self.readIntegerFromASCII() {
-                    let now = ContinuousClock.now
-                    let instant = now.advanced(by: Duration.seconds(ttlSeconds))
-                    flags.timeToLive = .expiresAt(instant)
-                }
-
             case UInt8.carriageReturn:
                 guard let followingByte = self.getInteger(at: self.readerIndex + 1, as: UInt8.self) else {
                     // We were expecting a newline after the carriage return, but didn't get it.
@@ -115,10 +113,6 @@ extension ByteBuffer {
                     // If it wasn't a newline, it is something unexpected.
                     fatalError("Unexpected character in flags. Expected newline after carriage return.")
                 }
-            case UInt8.newline:
-                // we are finished parsing flags
-                self.moveReaderIndex(forwardBy: 1)
-                return flags
             default:
                 // Encountered a character we weren't expecting. This should be a fatal error.
                 fatalError("Unexpected character in flags.")
