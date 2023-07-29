@@ -18,7 +18,6 @@ enum MemcachedRequest {
     struct SetCommand {
         let key: String
         var value: ByteBuffer
-        var flags: MemcachedFlags?
     }
 
     struct GetCommand {
