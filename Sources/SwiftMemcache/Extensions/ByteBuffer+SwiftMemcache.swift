@@ -72,7 +72,7 @@ extension ByteBuffer {
                 let maximumOffset = 60 * 60 * 24 * 30
 
                 if ttlSeconds > maximumOffset {
-                    // The TTL is treated as Unix time.
+                    // The Time-To-Live is treated as Unix time.
                     var timespec = timespec()
                     timespec_get(&timespec, TIME_UTC)
                     let timeIntervalNow = Double(timespec.tv_sec) + Double(timespec.tv_nsec) / 1_000_000_000
