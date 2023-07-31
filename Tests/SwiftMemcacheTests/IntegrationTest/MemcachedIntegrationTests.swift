@@ -118,7 +118,7 @@ final class MemcachedIntegrationTest: XCTestCase {
 
             // Set a value for a key.
             let setValue = "foo"
-            // Set TTL Expiration
+            // Set Time-To-Live Expiration
             let now = ContinuousClock.Instant.now
             let expirationTime = now.advanced(by: .seconds(90))
             let timeToLive = TimeToLive.expiresAt(expirationTime)
@@ -142,17 +142,17 @@ final class MemcachedIntegrationTest: XCTestCase {
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask { try await memcachedConnection.run() }
 
-            // Set key and value with a known TTL
+            // Set key and value with a known Time-To-Live
             let setValue = "foo"
-            // Initial TTL in seconds
+            // Initial Time-To-Live in seconds
             let initialTTLValue = 1111
             let now = ContinuousClock.Instant.now
             let expirationTime = now.advanced(by: .seconds(initialTTLValue))
             let timeToLive = TimeToLive.expiresAt(expirationTime)
             try await memcachedConnection.set("bar", value: setValue, timeToLive: timeToLive)
 
-            // Update the TTL for the key
-            // New TTL in seconds
+            // Update the Time-To-Live for the key
+            // New Time-To-Live in seconds
             let newTTLValue = 2222
             let newExpirationTime = now.advanced(by: .seconds(newTTLValue))
             let newExpiration = TimeToLive.expiresAt(newExpirationTime)
@@ -174,18 +174,18 @@ final class MemcachedIntegrationTest: XCTestCase {
 
             // Set key and value with a known TTL
             let setValue = "foo"
-            // Initial TTL in seconds
+            // Initial Time-To-Live in seconds
             let initialTTLValue = 1
             let now = ContinuousClock.Instant.now
             let expirationTime = now.advanced(by: .seconds(initialTTLValue))
             let timeToLive = TimeToLive.expiresAt(expirationTime)
             try await memcachedConnection.set("bar", value: setValue, timeToLive: timeToLive)
 
-            // Update the TTL for the key to indefinite
+            // Update the Time-To-Live for the key to indefinite
             let newExpiration = TimeToLive.indefinitely
             _ = try await memcachedConnection.touch("bar", newTimeToLive: newExpiration)
 
-            // Wait for more than the initial TTL duration
+            // Wait for more than the initial Time-To-Live duration
             // Sleep for 1.5 seconds
             try await Task.sleep(for: .seconds(1.5))
 
@@ -208,9 +208,9 @@ final class MemcachedIntegrationTest: XCTestCase {
         try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask { try await memcachedConnection.run() }
 
-            // Set key and value with a known TTL
+            // Set key and value with a known Time-To-Live
             let setValue = "foo"
-            // Initial TTL in seconds
+            // Initial Time-To-Live in seconds
             // 30 days + 1 seconds
             let initialTTLValue = 60 * 60 * 24 * 30 + 1
             let now = ContinuousClock.Instant.now

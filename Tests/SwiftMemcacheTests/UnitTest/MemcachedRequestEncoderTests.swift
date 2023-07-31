@@ -82,14 +82,14 @@ final class MemcachedRequestEncoderTests: XCTestCase {
             XCTFail("Encoding failed with error: \(error)")
         }
 
-        // time to live has been transformed to a Unix timestamp
+        // Time-To-Live has been transformed to a Unix timestamp
         var timespec = timespec()
         timespec_get(&timespec, TIME_UTC)
         let timeIntervalNow = Double(timespec.tv_sec) + Double(timespec.tv_nsec) / 1_000_000_000
         let ttlSeconds = Duration.seconds(60 * 60 * 24 * 45).components.seconds
         let ttlUnixTime = Int32(timeIntervalNow) + Int32(ttlSeconds)
 
-        // Extract the encoded TTL
+        // Extract the encoded Time-To-Live
         let encodedString = outBuffer.getString(at: 0, length: outBuffer.readableBytes)!
         let regex = try! NSRegularExpression(pattern: "T(\\d+)", options: .caseInsensitive)
         let match = regex.firstMatch(in: encodedString, options: [], range: NSRange(location: 0, length: encodedString.utf16.count))
