@@ -16,7 +16,6 @@ import NIOCore
 import NIOPosix
 import SwiftMemcache
 
-@available(macOS 13.0, *)
 @main
 struct Program {
     // Create an event loop group with a single thread

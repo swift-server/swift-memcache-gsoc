@@ -16,7 +16,6 @@ import NIOCore
 @testable import SwiftMemcache
 import XCTest
 
-@available(macOS 13.0, *)
 final class MemcachedTimeToLiveTests: XCTestCase {
     let clock = ContinuousClock()
 

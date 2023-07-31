@@ -16,7 +16,6 @@ import NIOCore
 @testable import SwiftMemcache
 import XCTest
 
-@available(macOS 13.0, *)
 final class MemcachedRequestEncoderTests: XCTestCase {
     var encoder: MemcachedRequestEncoder!
 
@@ -44,16 +43,14 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
     }
 
-    func testEncodeSetTTLRequest() {
+    func testEncodeTouchRequest() {
         // Prepare a MemcachedRequest
-        var buffer = ByteBufferAllocator().buffer(capacity: 2)
-        buffer.writeString("hi")
         var flags = MemcachedFlags()
 
         let clock = ContinuousClock()
         flags.timeToLive = .expiresAt(clock.now.advanced(by: Duration.seconds(90)))
-        let command = MemcachedRequest.SetCommand(key: "foo", value: buffer, flags: flags)
-        let request = MemcachedRequest.set(command)
+        let command = MemcachedRequest.GetCommand(key: "foo", flags: flags)
+        let request = MemcachedRequest.get(command)
 
         // pass our request through the encoder
         var outBuffer = ByteBufferAllocator().buffer(capacity: 0)
@@ -63,7 +60,63 @@ final class MemcachedRequestEncoderTests: XCTestCase {
             XCTFail("Encoding failed with error: \(error)")
         }
 
-        let expectedEncodedData = "ms foo 2 T89\r\nhi\r\n"
+        let expectedEncodedData = "mg foo T89\r\n"
+        XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
+    }
+
+    func testEncodeLargeInstantRequest() {
+        // Prepare a MemcachedRequest
+        var flags = MemcachedFlags()
+
+        let clock = ContinuousClock()
+        // 45 days
+        flags.timeToLive = .expiresAt(clock.now.advanced(by: Duration.seconds(60 * 60 * 24 * 45)))
+        let command = MemcachedRequest.GetCommand(key: "foo", flags: flags)
+        let request = MemcachedRequest.get(command)
+
+        // pass our request through the encoder
+        var outBuffer = ByteBufferAllocator().buffer(capacity: 0)
+        do {
+            try self.encoder.encode(data: request, out: &outBuffer)
+        } catch {
+            XCTFail("Encoding failed with error: \(error)")
+        }
+
+        // time to live has been transformed to a Unix timestamp
+        var timespec = timespec()
+        timespec_get(&timespec, TIME_UTC)
+        let timeIntervalNow = Double(timespec.tv_sec) + Double(timespec.tv_nsec) / 1_000_000_000
+        let ttlSeconds = Duration.seconds(60 * 60 * 24 * 45).components.seconds
+        let ttlUnixTime = Int32(timeIntervalNow) + Int32(ttlSeconds)
+
+        // Extract the encoded TTL
+        let encodedString = outBuffer.getString(at: 0, length: outBuffer.readableBytes)!
+        let regex = try! NSRegularExpression(pattern: "T(\\d+)", options: .caseInsensitive)
+        let match = regex.firstMatch(in: encodedString, options: [], range: NSRange(location: 0, length: encodedString.utf16.count))
+        let encodedTTLRange = Range(match!.range(at: 1), in: encodedString)!
+        let encodedTTL = Int32(encodedString[encodedTTLRange])!
+
+        // Check if the encoded ttl is within 5 seconds of the expected value
+        XCTAssert(abs(ttlUnixTime - encodedTTL) <= 5, "Encoded TTL is not within 5 seconds of the expected value")
+    }
+
+    func testEncodeIndefinitelyRequest() {
+        // Prepare a MemcachedRequest
+        var flags = MemcachedFlags()
+
+        flags.timeToLive = .indefinitely
+        let command = MemcachedRequest.GetCommand(key: "foo", flags: flags)
+        let request = MemcachedRequest.get(command)
+
+        // pass our request through the encoder
+        var outBuffer = ByteBufferAllocator().buffer(capacity: 0)
+        do {
+            try self.encoder.encode(data: request, out: &outBuffer)
+        } catch {
+            XCTFail("Encoding failed with error: \(error)")
+        }
+
+        let expectedEncodedData = "mg foo T0\r\n"
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
     }
 

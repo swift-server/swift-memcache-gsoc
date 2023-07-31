@@ -17,7 +17,6 @@ import NIOEmbedded
 @testable import SwiftMemcache
 import XCTest
 
-@available(macOS 13.0, *)
 final class MemcachedResponseDecoderTests: XCTestCase {
     var decoder: MemcachedResponseDecoder!
 

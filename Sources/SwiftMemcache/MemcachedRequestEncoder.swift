@@ -15,7 +15,6 @@
 import NIOCore
 import NIOPosix
 
-@available(macOS 13.0, *)
 struct MemcachedRequestEncoder: MessageToByteEncoder {
     typealias OutboundIn = MemcachedRequest
 
@@ -34,6 +33,11 @@ struct MemcachedRequestEncoder: MessageToByteEncoder {
             // write value length
             let length = command.value.readableBytes
             out.writeIntegerAsASCII(length)
+
+            // write flags if there are any
+            if let flags = command.flags {
+                out.writeMemcachedFlags(flags: flags)
+            }
 
             // write separator
             out.writeInteger(UInt8.carriageReturn)

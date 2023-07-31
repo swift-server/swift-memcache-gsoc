@@ -19,7 +19,6 @@ import NIOPosix
 /// An actor to create a connection to a Memcache server.
 ///
 /// This actor can be used to send commands to the server.
-@available(macOS 13.0, *)
 public actor MemcachedConnection {
     private typealias StreamElement = (MemcachedRequest, CheckedContinuation<MemcachedResponse, Error>)
     private let host: String
@@ -198,7 +197,7 @@ public actor MemcachedConnection {
     ///   - key: The key to update the time-to-live for.
     ///   - newTimeToLive: The new time-to-live.
     /// - Throws: A `MemcachedConnectionError` if the connection is shutdown or if there's an unexpected nil response.
-    public func touch<Value: MemcachedValue>(_ key: String, as valueType: Value.Type = Value.self, newTimeToLive: TimeToLive) async throws {
+    public func touch(_ key: String, newTimeToLive: TimeToLive) async throws {
         switch self.state {
         case .initial(_, _, _, _),
              .running:
@@ -227,7 +226,7 @@ public actor MemcachedConnection {
     ///     If provided, the key-value pair will be removed from the cache after the specified TTL duration has passed.
     ///     If not provided, the key-value pair will persist indefinitely in the cache.
     /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
-    public func set(_ key: String, value: some MemcachedValue, expiration: TimeToLive = .indefinitely) async throws {
+    public func set(_ key: String, value: some MemcachedValue, timeToLive: TimeToLive = .indefinitely) async throws {
         switch self.state {
         case .initial(_, let bufferAllocator, _, _),
              .running(let bufferAllocator, _, _, _):
@@ -237,7 +236,7 @@ public actor MemcachedConnection {
             var flags: MemcachedFlags?
 
             flags = MemcachedFlags()
-            flags?.timeToLive = expiration
+            flags?.timeToLive = timeToLive
 
             let command = MemcachedRequest.SetCommand(key: key, value: buffer, flags: flags)
             let request = MemcachedRequest.set(command)

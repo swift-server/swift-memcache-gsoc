@@ -48,7 +48,6 @@ import NIOPosix
 ///
 /// For usage examples beyond basic syntax, please see the wiki:
 /// https://github.com/memcached/memcached/wiki/MetaCommands
-@available(macOS 13.0, *)
 struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
     typealias InboundOut = MemcachedResponse
 
@@ -68,7 +67,6 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
 
     /// The next step that the decoder will take. The value of this enum determines how the decoder
     /// processes the current state of the ByteBuffer.
-    @available(macOS 13.0, *)
     enum NextStep: Hashable {
         /// The initial step.
         case returnCode

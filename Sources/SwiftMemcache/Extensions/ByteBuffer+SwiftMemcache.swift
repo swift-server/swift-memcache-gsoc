@@ -43,7 +43,6 @@ extension ByteBuffer {
     }
 }
 
-@available(macOS 13.0, *)
 extension ByteBuffer {
     /// Serialize and writes MemcachedFlags to the ByteBuffer.
     ///
@@ -64,7 +63,7 @@ extension ByteBuffer {
             case .indefinitely:
                 self.writeInteger(UInt8.whitespace)
                 self.writeInteger(UInt8.T)
-                self.writeIntegerAsASCII(UInt8.zero)
+                self.writeInteger(UInt8.zero)
             case .expiresAt(let instant):
                 let now = ContinuousClock.now
                 let duration = now.duration(to: instant)
@@ -90,7 +89,6 @@ extension ByteBuffer {
     }
 }
 
-@available(macOS 13.0, *)
 extension ByteBuffer {
     /// Parses flags from this `ByteBuffer`, advancing the reader index accordingly.
     ///

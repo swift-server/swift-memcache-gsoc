@@ -17,7 +17,6 @@ import NIOPosix
 @testable import SwiftMemcache
 import XCTest
 
-@available(macOS 13.0, *)
 final class MemcachedIntegrationTest: XCTestCase {
     var channel: ClientBootstrap!
     var group: EventLoopGroup!
@@ -86,7 +85,6 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
-    @available(macOS 13.0, *)
     func testMemcachedConnection() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
@@ -108,7 +106,6 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
-    @available(macOS 13.0, *)
     func testSetValueWithTTL() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
@@ -124,8 +121,8 @@ final class MemcachedIntegrationTest: XCTestCase {
             // Set TTL Expiration
             let now = ContinuousClock.Instant.now
             let expirationTime = now.advanced(by: .seconds(90))
-            let expiration = TimeToLive.expiresAt(expirationTime)
-            try await memcachedConnection.set("bar", value: setValue, expiration: expiration)
+            let timeToLive = TimeToLive.expiresAt(expirationTime)
+            try await memcachedConnection.set("bar", value: setValue, timeToLive: timeToLive)
 
             // Get value for key
             let getValue: String? = try await memcachedConnection.get("bar")
@@ -135,7 +132,6 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
-    @available(macOS 13.0, *)
     func testTouch() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
@@ -152,21 +148,20 @@ final class MemcachedIntegrationTest: XCTestCase {
             let initialTTLValue = 1111
             let now = ContinuousClock.Instant.now
             let expirationTime = now.advanced(by: .seconds(initialTTLValue))
-            let expiration = TimeToLive.expiresAt(expirationTime)
-            try await memcachedConnection.set("bar", value: setValue, expiration: expiration)
+            let timeToLive = TimeToLive.expiresAt(expirationTime)
+            try await memcachedConnection.set("bar", value: setValue, timeToLive: timeToLive)
 
             // Update the TTL for the key
             // New TTL in seconds
             let newTTLValue = 2222
             let newExpirationTime = now.advanced(by: .seconds(newTTLValue))
             let newExpiration = TimeToLive.expiresAt(newExpirationTime)
-            _ = try await memcachedConnection.touch("bar", as: String.self, newTimeToLive: newExpiration)
+            _ = try await memcachedConnection.touch("bar", newTimeToLive: newExpiration)
 
             group.cancelAll()
         }
     }
 
-    @available(macOS 13.0, *)
     func testTouchWithIndefiniteExpiration() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
@@ -180,19 +175,19 @@ final class MemcachedIntegrationTest: XCTestCase {
             // Set key and value with a known TTL
             let setValue = "foo"
             // Initial TTL in seconds
-            let initialTTLValue = 5
+            let initialTTLValue = 1
             let now = ContinuousClock.Instant.now
             let expirationTime = now.advanced(by: .seconds(initialTTLValue))
-            let expiration = TimeToLive.expiresAt(expirationTime)
-            try await memcachedConnection.set("bar", value: setValue, expiration: expiration)
+            let timeToLive = TimeToLive.expiresAt(expirationTime)
+            try await memcachedConnection.set("bar", value: setValue, timeToLive: timeToLive)
 
             // Update the TTL for the key to indefinite
             let newExpiration = TimeToLive.indefinitely
-            _ = try await memcachedConnection.touch("bar", as: String.self, newTimeToLive: newExpiration)
+            _ = try await memcachedConnection.touch("bar", newTimeToLive: newExpiration)
 
             // Wait for more than the initial TTL duration
-            // Sleep for 6 seconds
-            try await Task.sleep(nanoseconds: UInt64(6 * 1_000_000_000))
+            // Sleep for 1.5 seconds
+            try await Task.sleep(for: .seconds(1.5))
 
             // Get the value and make sure it's still there
             let value: String? = try await memcachedConnection.get("bar", as: String.self)
@@ -203,7 +198,6 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
-    @available(macOS 13.0, *)
     func testValueWithLongExpiration() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
@@ -217,14 +211,15 @@ final class MemcachedIntegrationTest: XCTestCase {
             // Set key and value with a known TTL
             let setValue = "foo"
             // Initial TTL in seconds
-            let initialTTLValue = 60 * 60 * 24 * 30 + 5 // 30 days + 5 seconds
+            // 30 days + 1 seconds
+            let initialTTLValue = 60 * 60 * 24 * 30 + 1
             let now = ContinuousClock.Instant.now
             let expirationTime = now.advanced(by: .seconds(initialTTLValue))
-            let expiration = TimeToLive.expiresAt(expirationTime)
-            try await memcachedConnection.set("bar", value: setValue, expiration: expiration)
+            let timeToLive = TimeToLive.expiresAt(expirationTime)
+            try await memcachedConnection.set("bar", value: setValue, timeToLive: timeToLive)
 
-            // Wait for 6 seconds
-            try await Task.sleep(nanoseconds: UInt64(6 * 1_000_000_000)) // Sleep for 6 seconds
+            // Sleep for 1.5 seconds
+            try await Task.sleep(for: .seconds(1.5))
 
             // Get the value and make sure it's still there
             let value: String? = try await memcachedConnection.get("bar", as: String.self)
@@ -235,7 +230,6 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
-    @available(macOS 13.0, *)
     func testMemcachedConnectionWithUInt() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {

@@ -15,7 +15,6 @@
 @testable import SwiftMemcache
 import XCTest
 
-@available(macOS 13.0, *)
 final class MemcachedFlagsTests: XCTestCase {
     func testVFlag() {
         var flags = MemcachedFlags()
