@@ -136,21 +136,13 @@ public actor MemcachedConnection {
         }
     }
 
-    /// Fetch the value for a key from the Memcache server.
-    ///
-    /// - Parameter key: The key to fetch the value for.
-    /// - Returns: A `Value` containing the fetched value, or `nil` if no value was found.
-    public func get<Value: MemcachedValue>(_ key: String, as valueType: Value.Type = Value.self) async throws -> Value? {
+    /// Send a request to the Memcached server and returns a `MemcachedResponse`.
+    private func sendRequest(_ request: MemcachedRequest) async throws -> MemcachedResponse {
         switch self.state {
         case .initial(_, _, _, let requestContinuation),
              .running(_, _, _, let requestContinuation):
 
-            var flags = MemcachedFlags()
-            flags.shouldReturnValue = true
-            let command = MemcachedRequest.GetCommand(key: key, flags: flags)
-            let request = MemcachedRequest.get(command)
-
-            let response = try await withCheckedThrowingContinuation { continuation in
+            return try await withCheckedThrowingContinuation { continuation in
                 switch requestContinuation.yield((request, continuation)) {
                 case .enqueued:
                     break
@@ -159,7 +151,31 @@ public actor MemcachedConnection {
                 default:
                     break
                 }
-            }.value
+            }
+
+        case .finished:
+            throw MemcachedConnectionError.connectionShutdown
+        }
+    }
+
+    // MARK: - Fetching Values
+
+    /// Fetch the value for a key from the Memcache server.
+    ///
+    /// - Parameter key: The key to fetch the value for.
+    /// - Returns: A `Value` containing the fetched value, or `nil` if no value was found.
+    public func get<Value: MemcachedValue>(_ key: String, as valueType: Value.Type = Value.self) async throws -> Value? {
+        switch self.state {
+        case .initial(_, _, _, _),
+             .running:
+
+            var flags = MemcachedFlags()
+            flags.shouldReturnValue = true
+
+            let command = MemcachedRequest.GetCommand(key: key, flags: flags)
+            let request = MemcachedRequest.get(command)
+
+            let response = try await sendRequest(request).value
 
             if var unwrappedResponse = response {
                 return Value.readFromBuffer(&unwrappedResponse)
@@ -171,31 +187,61 @@ public actor MemcachedConnection {
         }
     }
 
-    /// Set the value for a key on the Memcache server.
+    // MARK: - Touch
+
+    /// Update the time-to-live for a key.
+    ///
+    /// This method changes the expiration time of an existing item without fetching it. If the key does not exist or if the new expiration time is already passed, the operation will not succeed.
     ///
     /// - Parameters:
-    ///   - key: The key to set the value for.
-    ///   - value: The `Value` to set for the key.
-    public func set(_ key: String, value: some MemcachedValue) async throws {
+    ///   - key: The key to update the time-to-live for.
+    ///   - newTimeToLive: The new time-to-live.
+    /// - Throws: A `MemcachedConnectionError` if the connection is shutdown or if there's an unexpected nil response.
+    public func touch(_ key: String, newTimeToLive: TimeToLive) async throws {
         switch self.state {
-        case .initial(_, let bufferAllocator, _, let requestContinuation),
-             .running(let bufferAllocator, _, _, let requestContinuation):
+        case .initial(_, _, _, _),
+             .running:
+
+            var flags = MemcachedFlags()
+            flags.timeToLive = newTimeToLive
+
+            let command = MemcachedRequest.GetCommand(key: key, flags: flags)
+            let request = MemcachedRequest.get(command)
+
+            _ = try await self.sendRequest(request)
+
+        case .finished:
+            throw MemcachedConnectionError.connectionShutdown
+        }
+    }
+
+    // MARK: - Setting a Value
+
+    /// Sets a value for a specified key in the Memcache server with an optional Time-to-Live (TTL) parameter.
+    ///
+    /// - Parameters:
+    ///   - key: The key for which the value is to be set.
+    ///   - value: The `MemcachedValue` to set for the key.
+    ///   - expiration: An optional `TimeToLive` value specifying the TTL (Time-To-Live) for the key-value pair.
+    ///     If provided, the key-value pair will be removed from the cache after the specified TTL duration has passed.
+    ///     If not provided, the key-value pair will persist indefinitely in the cache.
+    /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
+    public func set(_ key: String, value: some MemcachedValue, timeToLive: TimeToLive = .indefinitely) async throws {
+        switch self.state {
+        case .initial(_, let bufferAllocator, _, _),
+             .running(let bufferAllocator, _, _, _):
 
             var buffer = bufferAllocator.buffer(capacity: 0)
             value.writeToBuffer(&buffer)
-            let command = MemcachedRequest.SetCommand(key: key, value: buffer)
+            var flags: MemcachedFlags?
+
+            flags = MemcachedFlags()
+            flags?.timeToLive = timeToLive
+
+            let command = MemcachedRequest.SetCommand(key: key, value: buffer, flags: flags)
             let request = MemcachedRequest.set(command)
 
-            _ = try await withCheckedThrowingContinuation { continuation in
-                switch requestContinuation.yield((request, continuation)) {
-                case .enqueued:
-                    break
-                case .dropped, .terminated:
-                    continuation.resume(throwing: MemcachedConnectionError.connectionShutdown)
-                default:
-                    break
-                }
-            }.value
+            _ = try await self.sendRequest(request)
 
         case .finished:
             throw MemcachedConnectionError.connectionShutdown

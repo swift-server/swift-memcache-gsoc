@@ -21,6 +21,7 @@ struct MemcachedResponse {
         case EX
         case NF
         case VA
+        case EN
 
         init(_ bytes: UInt16) {
             switch bytes {
@@ -34,6 +35,8 @@ struct MemcachedResponse {
                 self = .NF
             case 0x5641:
                 self = .VA
+            case 0x454E:
+                self = .EN
             default:
                 preconditionFailure("Unrecognized response code.")
             }

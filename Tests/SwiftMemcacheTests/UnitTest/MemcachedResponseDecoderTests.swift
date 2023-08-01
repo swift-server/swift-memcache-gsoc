@@ -41,6 +41,8 @@ final class MemcachedResponseDecoderTests: XCTestCase {
             returnCode = 0x4E46
         case .VA:
             returnCode = 0x5641
+        case .EN:
+            returnCode = 0x454E
         }
 
         buffer.writeInteger(returnCode)
@@ -100,6 +102,12 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         let notFoundResponse = MemcachedResponse(returnCode: .NF, dataLength: nil)
         var buffer = self.makeMemcachedResponseByteBuffer(from: notFoundResponse)
         try self.testDecodeResponse(buffer: &buffer, expectedReturnCode: .NF)
+    }
+
+    func testDecodeMissResponse() throws {
+        let missResponse = MemcachedResponse(returnCode: .EN, dataLength: nil)
+        var buffer = self.makeMemcachedResponseByteBuffer(from: missResponse)
+        try self.testDecodeResponse(buffer: &buffer, expectedReturnCode: .EN)
     }
 
     func testDecodeValueResponse() throws {

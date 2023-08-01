@@ -34,6 +34,11 @@ struct MemcachedRequestEncoder: MessageToByteEncoder {
             let length = command.value.readableBytes
             out.writeIntegerAsASCII(length)
 
+            // write flags if there are any
+            if let flags = command.flags {
+                out.writeMemcachedFlags(flags: flags)
+            }
+
             // write separator
             out.writeInteger(UInt8.carriageReturn)
             out.writeInteger(UInt8.newline)

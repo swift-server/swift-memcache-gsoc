@@ -12,6 +12,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Foundation
 import NIOCore
 
 extension ByteBuffer {
@@ -30,13 +31,13 @@ extension ByteBuffer {
     /// Reads an integer from ASCII characters directly from this `ByteBuffer`.
     /// The reading stops as soon as a non-digit character is encountered.
     ///
-    /// - Returns: A `UInt64` integer read from the buffer.
+    /// - Returns: A `T` integer read from the buffer.
     /// If the buffer does not contain any digits at the current reading position, returns `nil`.
-    mutating func readIntegerFromASCII() -> UInt64? {
-        var value: UInt64 = 0
+    mutating func readIntegerFromASCII<T: FixedWidthInteger>() -> T? {
+        var value: T = 0
         while self.readableBytes > 0, let currentByte = self.readInteger(as: UInt8.self),
               currentByte >= UInt8.zero && currentByte <= UInt8.nine {
-            value = (value * 10) + UInt64(currentByte - UInt8.zero)
+            value = (value * 10) + T(currentByte - UInt8.zero)
         }
         return value > 0 ? value : nil
     }
@@ -55,6 +56,35 @@ extension ByteBuffer {
         if let shouldReturnValue = flags.shouldReturnValue, shouldReturnValue {
             self.writeInteger(UInt8.whitespace)
             self.writeInteger(UInt8.v)
+        }
+
+        if let timeToLive = flags.timeToLive {
+            switch timeToLive {
+            case .indefinitely:
+                self.writeInteger(UInt8.whitespace)
+                self.writeInteger(UInt8.T)
+                self.writeInteger(UInt8.zero)
+            case .expiresAt(let instant):
+                let now = ContinuousClock.now
+                let duration = now.duration(to: instant)
+                let ttlSeconds = duration.components.seconds
+                let maximumOffset = 60 * 60 * 24 * 30
+
+                if ttlSeconds > maximumOffset {
+                    // The Time-To-Live is treated as Unix time.
+                    var timespec = timespec()
+                    timespec_get(&timespec, TIME_UTC)
+                    let timeIntervalNow = Double(timespec.tv_sec) + Double(timespec.tv_nsec) / 1_000_000_000
+                    let ttlUnixTime = Int32(timeIntervalNow) + Int32(ttlSeconds)
+                    self.writeInteger(UInt8.whitespace)
+                    self.writeInteger(UInt8.T)
+                    self.writeIntegerAsASCII(ttlUnixTime)
+                } else {
+                    self.writeInteger(UInt8.whitespace)
+                    self.writeInteger(UInt8.T)
+                    self.writeIntegerAsASCII(ttlSeconds)
+                }
+            }
         }
     }
 }

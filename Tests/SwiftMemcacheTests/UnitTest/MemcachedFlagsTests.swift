@@ -25,4 +25,16 @@ final class MemcachedFlagsTests: XCTestCase {
             XCTFail("Flag shouldReturnValue is nil")
         }
     }
+
+    func testTTLFlag() {
+        var flags = MemcachedFlags()
+        let now = ContinuousClock.Instant.now
+        let expirationTime = now.advanced(by: .seconds(60))
+        flags.timeToLive = .expiresAt(expirationTime)
+        if case .expiresAt(let timeToLive)? = flags.timeToLive {
+            XCTAssertEqual(timeToLive, expirationTime)
+        } else {
+            XCTFail("Flag timeToLive is nil")
+        }
+    }
 }

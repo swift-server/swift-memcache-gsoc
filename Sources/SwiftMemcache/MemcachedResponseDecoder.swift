@@ -134,7 +134,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
                     buffer.moveReaderIndex(forwardBy: 1)
                 }
 
-                guard let dataLength = buffer.readIntegerFromASCII() else {
+                guard let dataLength: UInt64 = buffer.readIntegerFromASCII() else {
                     throw MemcachedDecoderError.unexpectedCharacter(buffer.readableBytesView[buffer.readerIndex])
                 }
 

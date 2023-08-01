@@ -14,9 +14,10 @@
 
 /// Struct representing the flags of a Memcached command.
 ///
-/// Flags for the 'mg' (meta get) command are represented in this struct.
-/// Currently, only the 'v' flag for the meta get command is supported,
-/// which dictates whether the item value should be returned in the data block.
+/// Flags for the 'mg' (meta get) and 'ms' (meta set) commands are represented in this struct.
+/// The 'v' flag for the meta get command dictates whether the item value should be returned in the data block.
+/// The 'T' flag is used for both the meta get and meta set commands to specify the Time-To-Live (TTL) for an item.
+/// The 't' flag for the meta get command indicates whether the Time-To-Live (TTL) for the item should be returned.
 struct MemcachedFlags {
     /// Flag 'v' for the 'mg' (meta get) command.
     ///
@@ -24,7 +25,21 @@ struct MemcachedFlags {
     /// If false, the data block for the 'mg' response is optional, and the response code changes from "HD" to "VA <size>".
     var shouldReturnValue: Bool?
 
+    /// Flag 'T' for the 'mg' (meta get) and 'ms' (meta set) commands.
+    ///
+    /// Represents the Time-To-Live (TTL) for an item, in seconds.
+    /// If set, the item is considered to be expired after this number of seconds.
+    var timeToLive: TimeToLive?
+
     init() {}
+}
+
+/// Enum representing the Time-To-Live (TTL) of a Memcached value.
+public enum TimeToLive: Equatable, Hashable {
+    /// The value should never expire.
+    case indefinitely
+    /// The value should expire after a specified time.
+    case expiresAt(ContinuousClock.Instant)
 }
 
 extension MemcachedFlags: Hashable {}
