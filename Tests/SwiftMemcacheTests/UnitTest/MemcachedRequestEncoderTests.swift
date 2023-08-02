@@ -139,4 +139,21 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         let expectedEncodedData = "mg foo v\r\n"
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
     }
+
+    func testEncodeDeleteRequest() {
+        // Prepare a MemcachedRequest
+        let command = MemcachedRequest.DeleteCommand(key: "foo")
+        let request = MemcachedRequest.delete(command)
+
+        // Pass our request through the encoder
+        var outBuffer = ByteBufferAllocator().buffer(capacity: 0)
+        do {
+            try self.encoder.encode(data: request, out: &outBuffer)
+        } catch {
+            XCTFail("Encoding failed with error: \(error)")
+        }
+
+        let expectedEncodedData = "md foo\r\n"
+        XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
+    }
 }

@@ -247,4 +247,35 @@ public actor MemcachedConnection {
             throw MemcachedConnectionError.connectionShutdown
         }
     }
+
+    // MARK: - Deleting a Value
+
+    /// Delete the value for a key from the Memcache server.
+    ///
+    /// - Parameter key: The key of the item to be deleted.
+    /// - Returns: A boolean indicating whether the deletion was successful.
+    /// - Throws: A `MemcachedConnectionError.connectionShutdown` error if the connection to the Memcache server is shut down.
+    public func delete(_ key: String) async throws -> Bool {
+        switch self.state {
+        case .initial(_, _, _, _),
+             .running:
+
+            let command = MemcachedRequest.DeleteCommand(key: key)
+            let request = MemcachedRequest.delete(command)
+
+            let response = try await sendRequest(request)
+
+            switch response.returnCode {
+            case .HD:
+                return true
+            case .NF:
+                return false
+            default:
+                return false
+            }
+
+        case .finished:
+            throw MemcachedConnectionError.connectionShutdown
+        }
+    }
 }
