@@ -253,9 +253,9 @@ public actor MemcachedConnection {
     /// Delete the value for a key from the Memcache server.
     ///
     /// - Parameter key: The key of the item to be deleted.
-    /// - Returns: A boolean indicating whether the deletion was successful.
     /// - Throws: A `MemcachedConnectionError.connectionShutdown` error if the connection to the Memcache server is shut down.
-    public func delete(_ key: String) async throws -> Bool {
+    /// - Throws: A `MemcachedConnectionError.unexpectedNilResponse` error if the key was not found or if an unexpected response code was returned.
+    public func delete(_ key: String) async throws {
         switch self.state {
         case .initial(_, _, _, _),
              .running:
@@ -267,11 +267,11 @@ public actor MemcachedConnection {
 
             switch response.returnCode {
             case .HD:
-                return true
+                return
             case .NF:
-                return false
+                throw MemcachedConnectionError.unexpectedNilResponse
             default:
-                return false
+                throw MemcachedConnectionError.unexpectedNilResponse
             }
 
         case .finished:
