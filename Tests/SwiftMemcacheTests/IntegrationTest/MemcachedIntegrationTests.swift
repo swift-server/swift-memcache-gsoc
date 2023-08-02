@@ -230,6 +230,30 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
+    func testDeleteValue() async throws {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await memcachedConnection.run() }
+
+            // Set key and value
+            let setValue = "foo"
+            try await memcachedConnection.set("bar", value: setValue)
+
+            // Delete the key
+            do {
+                try await memcachedConnection.delete("bar")
+            } catch {
+                XCTFail("Deletion attempt should be successful, but threw: \(error)")
+            }
+            group.cancelAll()
+        }
+    }
+
     func testMemcachedConnectionWithUInt() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {

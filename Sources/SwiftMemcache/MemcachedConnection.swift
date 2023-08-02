@@ -59,6 +59,8 @@ public actor MemcachedConnection {
         case connectionShutdown
         /// Indicates that a nil response was received from the server.
         case unexpectedNilResponse
+        /// Indicates that the key was not found.
+        case keyNotFound
     }
 
     private var state: State
@@ -242,6 +244,37 @@ public actor MemcachedConnection {
             let request = MemcachedRequest.set(command)
 
             _ = try await self.sendRequest(request)
+
+        case .finished:
+            throw MemcachedConnectionError.connectionShutdown
+        }
+    }
+
+    // MARK: - Deleting a Value
+
+    /// Delete the value for a key from the Memcache server.
+    ///
+    /// - Parameter key: The key of the item to be deleted.
+    /// - Throws: A `MemcachedConnectionError.connectionShutdown` error if the connection to the Memcache server is shut down.
+    /// - Throws: A `MemcachedConnectionError.unexpectedNilResponse` error if the key was not found or if an unexpected response code was returned.
+    public func delete(_ key: String) async throws {
+        switch self.state {
+        case .initial(_, _, _, _),
+             .running:
+
+            let command = MemcachedRequest.DeleteCommand(key: key)
+            let request = MemcachedRequest.delete(command)
+
+            let response = try await sendRequest(request)
+
+            switch response.returnCode {
+            case .HD:
+                return
+            case .NF:
+                throw MemcachedConnectionError.keyNotFound
+            default:
+                throw MemcachedConnectionError.unexpectedNilResponse
+            }
 
         case .finished:
             throw MemcachedConnectionError.connectionShutdown

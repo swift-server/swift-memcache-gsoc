@@ -25,6 +25,11 @@ enum MemcachedRequest {
         var flags: MemcachedFlags
     }
 
+    struct DeleteCommand {
+        let key: String
+    }
+
     case set(SetCommand)
     case get(GetCommand)
+    case delete(DeleteCommand)
 }
