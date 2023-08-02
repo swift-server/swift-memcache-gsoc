@@ -59,6 +59,8 @@ public actor MemcachedConnection {
         case connectionShutdown
         /// Indicates that a nil response was received from the server.
         case unexpectedNilResponse
+        /// Indicates that the key was not found.
+        case keyNotFound
     }
 
     private var state: State
@@ -269,7 +271,7 @@ public actor MemcachedConnection {
             case .HD:
                 return
             case .NF:
-                throw MemcachedConnectionError.unexpectedNilResponse
+                throw MemcachedConnectionError.keyNotFound
             default:
                 throw MemcachedConnectionError.unexpectedNilResponse
             }
