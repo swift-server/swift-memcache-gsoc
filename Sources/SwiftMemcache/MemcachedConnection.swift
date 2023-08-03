@@ -296,10 +296,10 @@ public actor MemcachedConnection {
 
             var buffer = bufferAllocator.buffer(capacity: 0)
             value.writeToBuffer(&buffer)
-            var flags: MemcachedFlags?
+            var flags: MemcachedFlags
 
             flags = MemcachedFlags()
-            flags?.storageMode = .prepend
+            flags.storageMode = .prepend
 
             let command = MemcachedRequest.SetCommand(key: key, value: buffer, flags: flags)
             let request = MemcachedRequest.set(command)
@@ -326,10 +326,10 @@ public actor MemcachedConnection {
 
             var buffer = bufferAllocator.buffer(capacity: 0)
             value.writeToBuffer(&buffer)
-            var flags: MemcachedFlags?
+            var flags: MemcachedFlags
 
             flags = MemcachedFlags()
-            flags?.storageMode = .append
+            flags.storageMode = .append
 
             let command = MemcachedRequest.SetCommand(key: key, value: buffer, flags: flags)
             let request = MemcachedRequest.set(command)
