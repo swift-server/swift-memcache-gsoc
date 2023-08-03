@@ -37,4 +37,24 @@ final class MemcachedFlagsTests: XCTestCase {
             XCTFail("Flag timeToLive is nil")
         }
     }
+
+    func testStorageModeAppend() {
+        var flags = MemcachedFlags()
+        flags.storageMode = .append
+        if case .append? = flags.storageMode {
+            XCTAssertTrue(true)
+        } else {
+            XCTFail("Flag storageMode is not .append")
+        }
+    }
+
+    func testStorageModePrepend() {
+        var flags = MemcachedFlags()
+        flags.storageMode = .prepend
+        if case .prepend? = flags.storageMode {
+            XCTAssertTrue(true)
+        } else {
+            XCTFail("Flag storageMode is not .prepend")
+        }
+    }
 }

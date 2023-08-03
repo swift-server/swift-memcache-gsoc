@@ -31,6 +31,12 @@ struct MemcachedFlags {
     /// If set, the item is considered to be expired after this number of seconds.
     var timeToLive: TimeToLive?
 
+    /// Mode for the 'ms' (meta set) command (corresponding to the 'M' flag).
+    ///
+    /// Represents the mode of the 'ms' command, which determines the behavior of the data operation.
+    /// The default mode is 'set'.
+    var storageMode: StorageMode?
+
     init() {}
 }
 
@@ -40,6 +46,14 @@ public enum TimeToLive: Equatable, Hashable {
     case indefinitely
     /// The value should expire after a specified time.
     case expiresAt(ContinuousClock.Instant)
+}
+
+/// Enum representing the Memcached 'ms' (meta set) command modes (corresponding to the 'M' flag).
+public enum StorageMode: Equatable, Hashable {
+    /// The 'append' command. If the item exists, append the new value to its data.
+    case append
+    /// The 'prepend' command. If the item exists, prepend the new value to its data.
+    case prepend
 }
 
 extension MemcachedFlags: Hashable {}

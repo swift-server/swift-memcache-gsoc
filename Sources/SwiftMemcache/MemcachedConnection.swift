@@ -280,4 +280,64 @@ public actor MemcachedConnection {
             throw MemcachedConnectionError.connectionShutdown
         }
     }
+
+    // MARK: - Prepending a Value
+
+    /// Prepend a value to an existing key in the Memcache server.
+    ///
+    /// - Parameters:
+    ///   - key: The key to prepend the value to.
+    ///   - value: The `MemcachedValue` to prepend.
+    /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
+    public func prepend(_ key: String, value: some MemcachedValue) async throws {
+        switch self.state {
+        case .initial(_, let bufferAllocator, _, _),
+             .running(let bufferAllocator, _, _, _):
+
+            var buffer = bufferAllocator.buffer(capacity: 0)
+            value.writeToBuffer(&buffer)
+            var flags: MemcachedFlags?
+
+            flags = MemcachedFlags()
+            flags?.storageMode = .prepend
+
+            let command = MemcachedRequest.SetCommand(key: key, value: buffer, flags: flags)
+            let request = MemcachedRequest.set(command)
+
+            _ = try await self.sendRequest(request)
+
+        case .finished:
+            throw MemcachedConnectionError.connectionShutdown
+        }
+    }
+
+    // MARK: - Appending a Value
+
+    /// Append a value to an existing key in the Memcache server.
+    ///
+    /// - Parameters:
+    ///   - key: The key to append the value to.
+    ///   - value: The `MemcachedValue` to append.
+    /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
+    public func append(_ key: String, value: some MemcachedValue) async throws {
+        switch self.state {
+        case .initial(_, let bufferAllocator, _, _),
+             .running(let bufferAllocator, _, _, _):
+
+            var buffer = bufferAllocator.buffer(capacity: 0)
+            value.writeToBuffer(&buffer)
+            var flags: MemcachedFlags?
+
+            flags = MemcachedFlags()
+            flags?.storageMode = .append
+
+            let command = MemcachedRequest.SetCommand(key: key, value: buffer, flags: flags)
+            let request = MemcachedRequest.set(command)
+
+            _ = try await self.sendRequest(request)
+
+        case .finished:
+            throw MemcachedConnectionError.connectionShutdown
+        }
+    }
 }
