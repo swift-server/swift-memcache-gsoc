@@ -254,6 +254,58 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
+    func testPrependValue() async throws {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await memcachedConnection.run() }
+
+            // Set key and initial value
+            let initialValue = "foo"
+            try await memcachedConnection.set("greet", value: initialValue)
+
+            // Prepend value to key
+            let prependValue = "Hi"
+            try await memcachedConnection.prepend("greet", value: prependValue)
+
+            // Get value for key after prepend operation
+            let updatedValue: String? = try await memcachedConnection.get("greet")
+            XCTAssertEqual(updatedValue, prependValue + initialValue, "Received value should be the same as the concatenation of prependValue and initialValue")
+
+            group.cancelAll()
+        }
+    }
+
+    func testAppendValue() async throws {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await memcachedConnection.run() }
+
+            // Set key and initial value
+            let initialValue = "hi"
+            try await memcachedConnection.set("greet", value: initialValue)
+
+            // Append value to key
+            let appendValue = "foo"
+            try await memcachedConnection.append("greet", value: appendValue)
+
+            // Get value for key after append operation
+            let updatedValue: String? = try await memcachedConnection.get("greet")
+            XCTAssertEqual(updatedValue, initialValue + appendValue, "Received value should be the same as the concatenation of initialValue and appendValue")
+
+            group.cancelAll()
+        }
+    }
+
     func testMemcachedConnectionWithUInt() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {

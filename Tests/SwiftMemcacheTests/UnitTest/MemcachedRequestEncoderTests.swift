@@ -24,6 +24,16 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         self.encoder = MemcachedRequestEncoder()
     }
 
+    func encodeRequest(_ request: MemcachedRequest) -> ByteBuffer {
+        var outBuffer = ByteBufferAllocator().buffer(capacity: 0)
+        do {
+            try self.encoder.encode(data: request, out: &outBuffer)
+        } catch {
+            XCTFail("Encoding failed with error: \(error)")
+        }
+        return outBuffer
+    }
+
     func testEncodeSetRequest() {
         // Prepare a MemcachedRequest
         var buffer = ByteBufferAllocator().buffer(capacity: 2)
@@ -32,14 +42,43 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         let request = MemcachedRequest.set(command)
 
         // pass our request through the encoder
-        var outBuffer = ByteBufferAllocator().buffer(capacity: 0)
-        do {
-            try self.encoder.encode(data: request, out: &outBuffer)
-        } catch {
-            XCTFail("Encoding failed with error: \(error)")
-        }
+        let outBuffer = self.encodeRequest(request)
 
         let expectedEncodedData = "ms foo 2\r\nhi\r\n"
+        XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
+    }
+
+    func testEncodeAppendRequest() {
+        // Prepare a MemcachedRequest
+        var buffer = ByteBufferAllocator().buffer(capacity: 2)
+        buffer.writeString("hi")
+
+        var flags = MemcachedFlags()
+        flags.storageMode = .append
+        let command = MemcachedRequest.SetCommand(key: "foo", value: buffer, flags: flags)
+        let request = MemcachedRequest.set(command)
+
+        // pass our request through the encoder
+        let outBuffer = self.encodeRequest(request)
+
+        let expectedEncodedData = "ms foo 2 MA\r\nhi\r\n"
+        XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
+    }
+
+    func testEncodePrependRequest() {
+        // Prepare a MemcachedRequest
+        var buffer = ByteBufferAllocator().buffer(capacity: 2)
+        buffer.writeString("hi")
+
+        var flags = MemcachedFlags()
+        flags.storageMode = .prepend
+        let command = MemcachedRequest.SetCommand(key: "foo", value: buffer, flags: flags)
+        let request = MemcachedRequest.set(command)
+
+        // pass our request through the encoder
+        let outBuffer = self.encodeRequest(request)
+
+        let expectedEncodedData = "ms foo 2 MP\r\nhi\r\n"
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
     }
 
@@ -53,12 +92,7 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         let request = MemcachedRequest.get(command)
 
         // pass our request through the encoder
-        var outBuffer = ByteBufferAllocator().buffer(capacity: 0)
-        do {
-            try self.encoder.encode(data: request, out: &outBuffer)
-        } catch {
-            XCTFail("Encoding failed with error: \(error)")
-        }
+        let outBuffer = self.encodeRequest(request)
 
         let expectedEncodedData = "mg foo T89\r\n"
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
@@ -75,12 +109,7 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         let request = MemcachedRequest.get(command)
 
         // pass our request through the encoder
-        var outBuffer = ByteBufferAllocator().buffer(capacity: 0)
-        do {
-            try self.encoder.encode(data: request, out: &outBuffer)
-        } catch {
-            XCTFail("Encoding failed with error: \(error)")
-        }
+        let outBuffer = self.encodeRequest(request)
 
         // Time-To-Live has been transformed to a Unix timestamp
         var timespec = timespec()
@@ -109,12 +138,7 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         let request = MemcachedRequest.get(command)
 
         // pass our request through the encoder
-        var outBuffer = ByteBufferAllocator().buffer(capacity: 0)
-        do {
-            try self.encoder.encode(data: request, out: &outBuffer)
-        } catch {
-            XCTFail("Encoding failed with error: \(error)")
-        }
+        let outBuffer = self.encodeRequest(request)
 
         let expectedEncodedData = "mg foo T0\r\n"
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
@@ -128,13 +152,8 @@ final class MemcachedRequestEncoderTests: XCTestCase {
 
         let request = MemcachedRequest.get(command)
 
-        // Pass our request through the encoder
-        var outBuffer = ByteBufferAllocator().buffer(capacity: 0)
-        do {
-            try self.encoder.encode(data: request, out: &outBuffer)
-        } catch {
-            XCTFail("Encoding failed with error: \(error)")
-        }
+        // pass our request through the encoder
+        let outBuffer = self.encodeRequest(request)
 
         let expectedEncodedData = "mg foo v\r\n"
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
@@ -145,13 +164,8 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         let command = MemcachedRequest.DeleteCommand(key: "foo")
         let request = MemcachedRequest.delete(command)
 
-        // Pass our request through the encoder
-        var outBuffer = ByteBufferAllocator().buffer(capacity: 0)
-        do {
-            try self.encoder.encode(data: request, out: &outBuffer)
-        } catch {
-            XCTFail("Encoding failed with error: \(error)")
-        }
+        // pass our request through the encoder
+        let outBuffer = self.encodeRequest(request)
 
         let expectedEncodedData = "md foo\r\n"
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)

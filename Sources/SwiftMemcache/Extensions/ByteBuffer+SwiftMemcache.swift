@@ -86,6 +86,19 @@ extension ByteBuffer {
                 }
             }
         }
+
+        if let storageMode = flags.storageMode {
+            switch storageMode {
+            case .append:
+                self.writeInteger(UInt8.whitespace)
+                self.writeInteger(UInt8.M)
+                self.writeInteger(UInt8.A)
+            case .prepend:
+                self.writeInteger(UInt8.whitespace)
+                self.writeInteger(UInt8.M)
+                self.writeInteger(UInt8.P)
+            }
+        }
     }
 }
 
