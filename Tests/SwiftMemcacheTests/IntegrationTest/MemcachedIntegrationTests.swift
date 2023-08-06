@@ -319,7 +319,16 @@ final class MemcachedIntegrationTest: XCTestCase {
             // Add a value to a key
             let addValue = "foo"
 
-            try await memcachedConnection.delete("adds")
+            // Attempt to delete the key, but ignore the error if it doesn't exist
+            do {
+                try await memcachedConnection.delete("adds")
+            } catch {
+                if "\(error)" != "keyNotFound" {
+                    throw error
+                }
+            }
+
+            // Proceed with adding the key-value pair
             try await memcachedConnection.add("adds", value: addValue)
 
             // Get value for the key after add operation
@@ -344,8 +353,16 @@ final class MemcachedIntegrationTest: XCTestCase {
             let initialValue = "foo"
             let newValue = "bar"
 
-            // Ensure the key is clean and add an initial value
-            try await memcachedConnection.delete("adds")
+            // Attempt to delete the key, but ignore the error if it doesn't exist
+            do {
+                try await memcachedConnection.delete("adds")
+            } catch {
+                if "\(error)" != "keyNotFound" {
+                    throw error
+                }
+            }
+
+            // Set an initial value for the key
             try await memcachedConnection.add("adds", value: initialValue)
 
             do {
