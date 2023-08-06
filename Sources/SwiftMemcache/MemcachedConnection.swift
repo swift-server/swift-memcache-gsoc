@@ -345,7 +345,7 @@ public actor MemcachedConnection {
 
     // MARK: - Adding a Value
 
-    /// Adds a value to a new key in the Memcached server.
+    /// Adds a new key-value pair in the Memcached server.
     /// The operation will fail if the key already exists.
     ///
     /// - Parameters:
@@ -409,7 +409,16 @@ public actor MemcachedConnection {
             let command = MemcachedRequest.SetCommand(key: key, value: buffer, flags: flags)
             let request = MemcachedRequest.set(command)
 
-            _ = try await self.sendRequest(request)
+            let response = try await sendRequest(request)
+
+            switch response.returnCode {
+            case .HD:
+                return
+            case .NS:
+                throw MemcachedConnectionError.keyNotFound
+            default:
+                throw MemcachedConnectionError.unexpectedNilResponse
+            }
 
         case .finished:
             throw MemcachedConnectionError.connectionShutdown

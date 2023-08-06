@@ -49,7 +49,7 @@ public enum TimeToLive: Equatable, Hashable {
 }
 
 /// Enum representing the Memcached 'ms' (meta set) command modes (corresponding to the 'M' flag).
-public enum StorageMode: Equatable, Hashable {
+enum StorageMode: Equatable, Hashable {
     /// The "add" command. If the item exists, LRU is bumped and NS is returned.
     case add
     /// The 'append' command. If the item exists, append the new value to its data.

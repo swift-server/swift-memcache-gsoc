@@ -330,6 +330,39 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
+    func testAddValueKeyExists() async throws {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await memcachedConnection.run() }
+
+            // Add a value to a key
+            let initialValue = "foo"
+            let newValue = "bar"
+
+            // Ensure the key is clean and add an initial value
+            try await memcachedConnection.delete("adds")
+            try await memcachedConnection.add("adds", value: initialValue)
+
+            do {
+                // Attempt to add a new value to the existing key
+                try await memcachedConnection.add("adds", value: newValue)
+                XCTFail("Expected an error indicating the key exists, but no error was thrown.")
+            } catch {
+                // Check if the error description or localized description matches the expected error
+                if "\(error)" != "keyExist" {
+                    XCTFail("Unexpected error: \(error)")
+                }
+            }
+
+            group.cancelAll()
+        }
+    }
+
     func testReplaceValue() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
@@ -351,6 +384,34 @@ final class MemcachedIntegrationTest: XCTestCase {
             // Get value for the key after replace operation
             let replacedValue: String? = try await memcachedConnection.get("greet")
             XCTAssertEqual(replacedValue, replaceValue, "Received value should be the same as the replaceValue")
+
+            group.cancelAll()
+        }
+    }
+
+    func testReplaceNonExistentKey() async throws {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+
+        await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await memcachedConnection.run() }
+
+            do {
+                // Ensure the key is clean
+                try await memcachedConnection.delete("nonExistentKey")
+                // Attempt to replace value for a non-existent key
+                let replaceValue = "testValue"
+                try await memcachedConnection.replace("nonExistentKey", value: replaceValue)
+                XCTFail("Expected an error indicating the key was not found, but no error was thrown.")
+            } catch {
+                // Check if the error description or localized description matches the expected error
+                if "\(error)" != "keyNotFound" {
+                    XCTFail("Unexpected error: \(error)")
+                }
+            }
 
             group.cancelAll()
         }
