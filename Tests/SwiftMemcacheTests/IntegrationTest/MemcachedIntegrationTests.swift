@@ -318,6 +318,7 @@ final class MemcachedIntegrationTest: XCTestCase {
 
             // Add a value to a key
             let addValue = "foo"
+
             try await memcachedConnection.delete("adds")
             try await memcachedConnection.add("adds", value: addValue)
 
