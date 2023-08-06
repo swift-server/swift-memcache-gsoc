@@ -306,6 +306,55 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
+    func testAddValue() async throws {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await memcachedConnection.run() }
+
+            // Add a value to a key
+            let addValue = "foo"
+            try await memcachedConnection.delete("adds")
+            try await memcachedConnection.add("adds", value: addValue)
+
+            // Get value for the key after add operation
+            let addedValue: String? = try await memcachedConnection.get("adds")
+            XCTAssertEqual(addedValue, addValue, "Received value should be the same as the added value")
+
+            group.cancelAll()
+        }
+    }
+
+    func testReplaceValue() async throws {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await memcachedConnection.run() }
+
+            // Set key and initial value
+            let initialValue = "foo"
+            try await memcachedConnection.set("greet", value: initialValue)
+
+            // Replace value for the key
+            let replaceValue = "hi"
+            try await memcachedConnection.replace("greet", value: replaceValue)
+
+            // Get value for the key after replace operation
+            let replacedValue: String? = try await memcachedConnection.get("greet")
+            XCTAssertEqual(replacedValue, replaceValue, "Received value should be the same as the replaceValue")
+
+            group.cancelAll()
+        }
+    }
+
     func testMemcachedConnectionWithUInt() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {

@@ -88,15 +88,17 @@ extension ByteBuffer {
         }
 
         if let storageMode = flags.storageMode {
+            self.writeInteger(UInt8.whitespace)
+            self.writeInteger(UInt8.M)
             switch storageMode {
+            case .add:
+                self.writeInteger(UInt8.E)
             case .append:
-                self.writeInteger(UInt8.whitespace)
-                self.writeInteger(UInt8.M)
                 self.writeInteger(UInt8.A)
             case .prepend:
-                self.writeInteger(UInt8.whitespace)
-                self.writeInteger(UInt8.M)
                 self.writeInteger(UInt8.P)
+            case .replace:
+                self.writeInteger(UInt8.R)
             }
         }
     }

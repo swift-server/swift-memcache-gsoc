@@ -38,6 +38,16 @@ final class MemcachedFlagsTests: XCTestCase {
         }
     }
 
+    func testStorageModeAdd() {
+        var flags = MemcachedFlags()
+        flags.storageMode = .add
+        if case .add? = flags.storageMode {
+            XCTAssertTrue(true)
+        } else {
+            XCTFail("Flag storageMode is not .add")
+        }
+    }
+
     func testStorageModeAppend() {
         var flags = MemcachedFlags()
         flags.storageMode = .append
@@ -55,6 +65,16 @@ final class MemcachedFlagsTests: XCTestCase {
             XCTAssertTrue(true)
         } else {
             XCTFail("Flag storageMode is not .prepend")
+        }
+    }
+
+    func testStorageModeReplace() {
+        var flags = MemcachedFlags()
+        flags.storageMode = .replace
+        if case .replace? = flags.storageMode {
+            XCTAssertTrue(true)
+        } else {
+            XCTFail("Flag storageMode is not .replace")
         }
     }
 }

@@ -48,38 +48,37 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
     }
 
-    func testEncodeAppendRequest() {
+    func testEncodeStorageRequest(withMode mode: StorageMode, expectedEncodedData: String) {
         // Prepare a MemcachedRequest
         var buffer = ByteBufferAllocator().buffer(capacity: 2)
         buffer.writeString("hi")
 
         var flags = MemcachedFlags()
-        flags.storageMode = .append
+        flags.storageMode = mode
         let command = MemcachedRequest.SetCommand(key: "foo", value: buffer, flags: flags)
         let request = MemcachedRequest.set(command)
 
         // pass our request through the encoder
         let outBuffer = self.encodeRequest(request)
 
-        let expectedEncodedData = "ms foo 2 MA\r\nhi\r\n"
+        // assert the encoded request
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
     }
 
+    func testEncodeAppendRequest() {
+        self.testEncodeStorageRequest(withMode: .append, expectedEncodedData: "ms foo 2 MA\r\nhi\r\n")
+    }
+
     func testEncodePrependRequest() {
-        // Prepare a MemcachedRequest
-        var buffer = ByteBufferAllocator().buffer(capacity: 2)
-        buffer.writeString("hi")
+        self.testEncodeStorageRequest(withMode: .prepend, expectedEncodedData: "ms foo 2 MP\r\nhi\r\n")
+    }
 
-        var flags = MemcachedFlags()
-        flags.storageMode = .prepend
-        let command = MemcachedRequest.SetCommand(key: "foo", value: buffer, flags: flags)
-        let request = MemcachedRequest.set(command)
+    func testEncodeAddRequest() {
+        self.testEncodeStorageRequest(withMode: .add, expectedEncodedData: "ms foo 2 ME\r\nhi\r\n")
+    }
 
-        // pass our request through the encoder
-        let outBuffer = self.encodeRequest(request)
-
-        let expectedEncodedData = "ms foo 2 MP\r\nhi\r\n"
-        XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
+    func testEncodeReplaceRequest() {
+        self.testEncodeStorageRequest(withMode: .replace, expectedEncodedData: "ms foo 2 MR\r\nhi\r\n")
     }
 
     func testEncodeTouchRequest() {

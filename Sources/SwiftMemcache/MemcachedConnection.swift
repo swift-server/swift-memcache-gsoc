@@ -61,6 +61,8 @@ public actor MemcachedConnection {
         case unexpectedNilResponse
         /// Indicates that the key was not found.
         case keyNotFound
+        /// Indicates that the key already exist
+        case keyExist
     }
 
     private var state: State
@@ -330,6 +332,79 @@ public actor MemcachedConnection {
 
             flags = MemcachedFlags()
             flags.storageMode = .append
+
+            let command = MemcachedRequest.SetCommand(key: key, value: buffer, flags: flags)
+            let request = MemcachedRequest.set(command)
+
+            _ = try await self.sendRequest(request)
+
+        case .finished:
+            throw MemcachedConnectionError.connectionShutdown
+        }
+    }
+
+    // MARK: - Adding a Value
+
+    /// Adds a value to a new key in the Memcached server.
+    /// The operation will fail if the key already exists.
+    ///
+    /// - Parameters:
+    ///   - key: The key to add the value to.
+    ///   - value: The `MemcachedValue` to add.
+    /// - Throws: A `MemcachedConnectionError.connectionShutdown` if the connection to the Memcached server is shut down.
+    /// - Throws: A `MemcachedConnectionError.keyExist` if the key already exists in the Memcached server.
+    /// - Throws: A `MemcachedConnectionError.unexpectedNilResponse` if an unexpected response code is returned.
+    public func add(_ key: String, value: some MemcachedValue) async throws {
+        switch self.state {
+        case .initial(_, let bufferAllocator, _, _),
+             .running(let bufferAllocator, _, _, _):
+
+            var buffer = bufferAllocator.buffer(capacity: 0)
+            value.writeToBuffer(&buffer)
+            var flags: MemcachedFlags
+
+            flags = MemcachedFlags()
+            flags.storageMode = .add
+
+            let command = MemcachedRequest.SetCommand(key: key, value: buffer, flags: flags)
+            let request = MemcachedRequest.set(command)
+
+            let response = try await sendRequest(request)
+
+            switch response.returnCode {
+            case .HD:
+                return
+            case .NS:
+                throw MemcachedConnectionError.keyExist
+            default:
+                throw MemcachedConnectionError.unexpectedNilResponse
+            }
+
+        case .finished:
+            throw MemcachedConnectionError.connectionShutdown
+        }
+    }
+
+    // MARK: - Replacing a Value
+
+    /// Replace the value for an existing key in the Memcache server.
+    /// The operation will fail if the key does not exist.
+    ///
+    /// - Parameters:
+    ///   - key: The key to replace the value for.
+    ///   - value: The `MemcachedValue` to replace.
+    /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
+    public func replace(_ key: String, value: some MemcachedValue) async throws {
+        switch self.state {
+        case .initial(_, let bufferAllocator, _, _),
+             .running(let bufferAllocator, _, _, _):
+
+            var buffer = bufferAllocator.buffer(capacity: 0)
+            value.writeToBuffer(&buffer)
+            var flags: MemcachedFlags
+
+            flags = MemcachedFlags()
+            flags.storageMode = .replace
 
             let command = MemcachedRequest.SetCommand(key: key, value: buffer, flags: flags)
             let request = MemcachedRequest.set(command)
