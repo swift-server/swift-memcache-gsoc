@@ -424,7 +424,6 @@ public actor MemcachedConnection {
             throw MemcachedConnectionError.connectionShutdown
         }
     }
-<<<<<<< HEAD
 
     // MARK: - Increment a Value
 
@@ -479,6 +478,4 @@ public actor MemcachedConnection {
             throw MemcachedConnectionError.connectionShutdown
         }
     }
-=======
->>>>>>> 9ae24ae6c441eaa6db85fab9671433c65de999b4
 }

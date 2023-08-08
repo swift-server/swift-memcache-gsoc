@@ -434,7 +434,6 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
-<<<<<<< HEAD
     func testIncrementValue() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
@@ -491,8 +490,6 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
-=======
->>>>>>> 9ae24ae6c441eaa6db85fab9671433c65de999b4
     func testMemcachedConnectionWithUInt() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
