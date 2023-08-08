@@ -99,6 +99,7 @@ extension ByteBuffer {
                 self.writeInteger(UInt8.P)
             case .replace:
                 self.writeInteger(UInt8.R)
+<<<<<<< HEAD
             }
         }
 
@@ -115,6 +116,8 @@ extension ByteBuffer {
                 self.writeInteger(UInt8.whitespace)
                 self.writeInteger(UInt8.D)
                 self.writeIntegerAsASCII(arithmeticDelta)
+=======
+>>>>>>> 9ae24ae6c441eaa6db85fab9671433c65de999b4
             }
         }
     }

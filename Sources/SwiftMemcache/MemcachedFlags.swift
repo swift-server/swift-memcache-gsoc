@@ -68,6 +68,7 @@ enum StorageMode: Equatable, Hashable {
     case prepend
     /// The "replace" command. The new value is set only if the item already exists.
     case replace
+<<<<<<< HEAD
 }
 
 /// Enum representing the mode for the 'ma' (meta arithmetic) command in Memcached (corresponding to the 'M' flag).
@@ -76,6 +77,8 @@ enum ArithmeticMode: Equatable, Hashable {
     case increment
     /// 'decrement' command. If applied, it decreases the numerical value of the item.
     case decrement
+=======
+>>>>>>> 9ae24ae6c441eaa6db85fab9671433c65de999b4
 }
 
 extension MemcachedFlags: Hashable {}
