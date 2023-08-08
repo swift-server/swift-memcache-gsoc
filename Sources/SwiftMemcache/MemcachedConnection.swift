@@ -424,4 +424,58 @@ public actor MemcachedConnection {
             throw MemcachedConnectionError.connectionShutdown
         }
     }
+
+    // MARK: - Increment a Value
+
+    /// Increment the value for an existing key in the Memcache server by a specified amount.
+    ///
+    /// - Parameters:
+    ///   - key: The key for the value to increment.
+    ///   - amount: The `UInt64` amount to increment the value by.
+    /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
+    public func increment(_ key: String, amount: UInt64) async throws {
+        switch self.state {
+        case .initial(_, _, _, _),
+             .running:
+
+            var flags = MemcachedFlags()
+            flags.arithmeticMode = .increment
+            flags.arithmeticDelta = amount
+
+            let command = MemcachedRequest.ArithmeticCommand(key: key, flags: flags)
+            let request = MemcachedRequest.arithmetic(command)
+
+            _ = try await self.sendRequest(request)
+
+        case .finished:
+            throw MemcachedConnectionError.connectionShutdown
+        }
+    }
+
+    // MARK: - Decrement a Value
+
+    /// Decrement the value for an existing key in the Memcache server by a specified amount.
+    ///
+    /// - Parameters:
+    ///   - key: The key for the value to decrement.
+    ///   - amount: The `UInt64` amount to decrement the value by.
+    /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
+    public func decrement(_ key: String, amount: UInt64) async throws {
+        switch self.state {
+        case .initial(_, _, _, _),
+             .running:
+
+            var flags = MemcachedFlags()
+            flags.arithmeticMode = .decrement
+            flags.arithmeticDelta = amount
+
+            let command = MemcachedRequest.ArithmeticCommand(key: key, flags: flags)
+            let request = MemcachedRequest.arithmetic(command)
+
+            _ = try await self.sendRequest(request)
+
+        case .finished:
+            throw MemcachedConnectionError.connectionShutdown
+        }
+    }
 }

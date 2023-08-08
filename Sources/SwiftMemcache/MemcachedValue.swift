@@ -33,14 +33,15 @@ extension MemcachedValue where Self: FixedWidthInteger {
     ///
     /// - Parameter buffer: The ByteBuffer to which the integer should be written.
     public func writeToBuffer(_ buffer: inout ByteBuffer) {
-        buffer.writeInteger(self)
+        buffer.writeString(String(self))
     }
 
     /// Reads a FixedWidthInteger from a ByteBuffer.
     ///
     /// - Parameter buffer: The ByteBuffer from which the value should be read.
     public static func readFromBuffer(_ buffer: inout ByteBuffer) -> Self? {
-        return buffer.readInteger()
+        guard let string = buffer.readString(length: buffer.readableBytes)?.trimmingCharacters(in: .whitespacesAndNewlines) else { return nil }
+        return Self(string)
     }
 }
 

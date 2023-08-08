@@ -29,7 +29,13 @@ enum MemcachedRequest {
         let key: String
     }
 
+    struct ArithmeticCommand {
+        let key: String
+        var flags: MemcachedFlags
+    }
+
     case set(SetCommand)
     case get(GetCommand)
     case delete(DeleteCommand)
+    case arithmetic(ArithmeticCommand)
 }

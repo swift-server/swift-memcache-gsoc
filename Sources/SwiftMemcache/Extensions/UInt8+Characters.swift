@@ -20,6 +20,7 @@ extension UInt8 {
     static var s: UInt8 = .init(ascii: "s")
     static var g: UInt8 = .init(ascii: "g")
     static var d: UInt8 = .init(ascii: "d")
+    static var a: UInt8 = .init(ascii: "a")
     static var v: UInt8 = .init(ascii: "v")
     static var T: UInt8 = .init(ascii: "T")
     static var M: UInt8 = .init(ascii: "M")
@@ -27,6 +28,9 @@ extension UInt8 {
     static var A: UInt8 = .init(ascii: "A")
     static var E: UInt8 = .init(ascii: "E")
     static var R: UInt8 = .init(ascii: "R")
+    static var D: UInt8 = .init(ascii: "D")
     static var zero: UInt8 = .init(ascii: "0")
     static var nine: UInt8 = .init(ascii: "9")
+    static var increment: UInt8 = .init(ascii: "+")
+    static var decrement: UInt8 = .init(ascii: "-")
 }
