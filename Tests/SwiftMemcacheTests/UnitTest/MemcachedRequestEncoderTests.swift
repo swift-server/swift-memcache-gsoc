@@ -173,8 +173,7 @@ final class MemcachedRequestEncoderTests: XCTestCase {
     func testEncodeIncrementRequest() {
         // Prepare a MemcachedRequest
         var flags = MemcachedFlags()
-        flags.arithmeticMode = .increment
-        flags.arithmeticDelta = 100
+        flags.arithmeticMode = .increment(100)
         let command = MemcachedRequest.ArithmeticCommand(key: "foo", flags: flags)
         let request = MemcachedRequest.arithmetic(command)
 
@@ -188,8 +187,7 @@ final class MemcachedRequestEncoderTests: XCTestCase {
     func testEncodeDecrementRequest() {
         // Prepare a MemcachedRequest
         var flags = MemcachedFlags()
-        flags.arithmeticMode = .decrement
-        flags.arithmeticDelta = 100
+        flags.arithmeticMode = .decrement(100)
         let command = MemcachedRequest.ArithmeticCommand(key: "foo", flags: flags)
         let request = MemcachedRequest.arithmetic(command)
 

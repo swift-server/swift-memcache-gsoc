@@ -445,15 +445,15 @@ final class MemcachedIntegrationTest: XCTestCase {
             group.addTask { try await memcachedConnection.run() }
 
             // Set key and initial value
-            let initialValue: UInt64 = 1
+            let initialValue = 1
             try await memcachedConnection.set("increment", value: initialValue)
 
             // Increment value
-            let incrementAmount: UInt64 = 100
+            let incrementAmount = 100
             try await memcachedConnection.increment("increment", amount: incrementAmount)
 
             // Get new value
-            let newValue: UInt64? = try await memcachedConnection.get("increment")
+            let newValue: Int? = try await memcachedConnection.get("increment")
 
             // Check if new value is equal to initial value plus increment amount
             XCTAssertEqual(newValue, initialValue + incrementAmount, "Incremented value is incorrect")
@@ -473,15 +473,15 @@ final class MemcachedIntegrationTest: XCTestCase {
             group.addTask { try await memcachedConnection.run() }
 
             // Set key and initial value
-            let initialValue: UInt64 = 100
+            let initialValue = 100
             try await memcachedConnection.set("decrement", value: initialValue)
 
             // Increment value
-            let decrementAmount: UInt64 = 10
+            let decrementAmount = 10
             try await memcachedConnection.decrement("decrement", amount: decrementAmount)
 
             // Get new value
-            let newValue: UInt64? = try await memcachedConnection.get("decrement")
+            let newValue: Int? = try await memcachedConnection.get("decrement")
 
             // Check if new value is equal to initial value plus increment amount
             XCTAssertEqual(newValue, initialValue - decrementAmount, "Incremented value is incorrect")

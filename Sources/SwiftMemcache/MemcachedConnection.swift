@@ -431,16 +431,18 @@ public actor MemcachedConnection {
     ///
     /// - Parameters:
     ///   - key: The key for the value to increment.
-    ///   - amount: The `UInt64` amount to increment the value by.
+    ///   - amount: The `Int` amount to increment the value by. Must be larger than 0.
     /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
-    public func increment(_ key: String, amount: UInt64) async throws {
+    public func increment(_ key: String, amount: Int) async throws {
+        // Ensure the amount is greater than 0
+        precondition(amount > 0, "Amount to increment should be larger than 0")
+
         switch self.state {
         case .initial(_, _, _, _),
              .running:
 
             var flags = MemcachedFlags()
-            flags.arithmeticMode = .increment
-            flags.arithmeticDelta = amount
+            flags.arithmeticMode = .increment(amount)
 
             let command = MemcachedRequest.ArithmeticCommand(key: key, flags: flags)
             let request = MemcachedRequest.arithmetic(command)
@@ -458,16 +460,18 @@ public actor MemcachedConnection {
     ///
     /// - Parameters:
     ///   - key: The key for the value to decrement.
-    ///   - amount: The `UInt64` amount to decrement the value by.
+    ///   - amount: The `Int` amount to decrement the value by. Must be larger than 0.
     /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
-    public func decrement(_ key: String, amount: UInt64) async throws {
+    public func decrement(_ key: String, amount: Int) async throws {
+        // Ensure the amount is greater than 0
+        precondition(amount > 0, "Amount to decrement should be larger than 0")
+
         switch self.state {
         case .initial(_, _, _, _),
              .running:
 
             var flags = MemcachedFlags()
-            flags.arithmeticMode = .decrement
-            flags.arithmeticDelta = amount
+            flags.arithmeticMode = .decrement(amount)
 
             let command = MemcachedRequest.ArithmeticCommand(key: key, flags: flags)
             let request = MemcachedRequest.arithmetic(command)

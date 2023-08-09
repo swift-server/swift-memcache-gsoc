@@ -106,15 +106,16 @@ extension ByteBuffer {
             self.writeInteger(UInt8.whitespace)
             self.writeInteger(UInt8.M)
             switch arithmeticMode {
-            case .decrement:
+            case .decrement(let delta):
                 self.writeInteger(UInt8.decrement)
-            case .increment:
-                self.writeInteger(UInt8.increment)
-            }
-            if let arithmeticDelta = flags.arithmeticDelta {
                 self.writeInteger(UInt8.whitespace)
                 self.writeInteger(UInt8.D)
-                self.writeIntegerAsASCII(arithmeticDelta)
+                self.writeIntegerAsASCII(delta)
+            case .increment(let delta):
+                self.writeInteger(UInt8.increment)
+                self.writeInteger(UInt8.whitespace)
+                self.writeInteger(UInt8.D)
+                self.writeIntegerAsASCII(delta)
             }
         }
     }
