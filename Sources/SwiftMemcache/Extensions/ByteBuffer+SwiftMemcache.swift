@@ -53,6 +53,9 @@ extension ByteBuffer {
     /// - parameters:
     ///     - flags: An instance of MemcachedFlags that holds the flags intended to be serialized and written to the ByteBuffer.
     mutating func writeMemcachedFlags(flags: MemcachedFlags) {
+        // Ensure that both storageMode and arithmeticMode aren't set at the same time.
+        precondition(!(flags.storageMode != nil && flags.arithmeticMode != nil), "Cannot specify both a storage and arithmetic mode.")
+
         if let shouldReturnValue = flags.shouldReturnValue, shouldReturnValue {
             self.writeInteger(UInt8.whitespace)
             self.writeInteger(UInt8.v)
