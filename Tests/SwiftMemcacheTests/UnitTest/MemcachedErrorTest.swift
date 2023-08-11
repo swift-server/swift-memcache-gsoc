@@ -34,9 +34,10 @@ final class MemcachedErrorTests: XCTestCase {
         let mainError = MemcachedError(code: .connectionShutdown, message: "Connection lost", cause: causeError, location: location)
 
         let description = mainError.description
-        XCTAssertTrue(description.contains("Connection shutdown"))
-        XCTAssertTrue(description.contains("Connection lost"))
-        XCTAssertTrue(description.contains("Unexpected nil response"))
+
+        XCTAssertTrue(description.contains(mainError.code.description))
+        XCTAssertTrue(description.contains(mainError.message))
+        XCTAssertTrue(description.contains(causeError.code.description))
     }
 
     func testCustomDebugStringConvertible() {
@@ -44,8 +45,9 @@ final class MemcachedErrorTests: XCTestCase {
         let error = MemcachedError(code: .keyExist, message: "Key already present", cause: nil, location: location)
 
         let debugDescription = error.debugDescription
-        XCTAssertTrue(debugDescription.contains("Key already Exist"))
-        XCTAssertTrue(debugDescription.contains("Key already present"))
+
+        XCTAssertTrue(debugDescription.contains(error.code.description))
+        XCTAssertTrue(debugDescription.contains(error.message))
     }
 
     func testDetailedDescription() {
