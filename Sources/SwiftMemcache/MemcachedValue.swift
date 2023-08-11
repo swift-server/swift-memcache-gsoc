@@ -40,8 +40,7 @@ extension MemcachedValue where Self: FixedWidthInteger {
     ///
     /// - Parameter buffer: The ByteBuffer from which the value should be read.
     public static func readFromBuffer(_ buffer: inout ByteBuffer) -> Self? {
-        guard let string = buffer.readString(length: buffer.readableBytes)?.trimmingCharacters(in: .whitespacesAndNewlines) else { return nil }
-        return Self(string)
+        return buffer.readIntegerFromASCII()
     }
 }
 
