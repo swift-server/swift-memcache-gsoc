@@ -13,19 +13,19 @@
 //===----------------------------------------------------------------------===//
 
 import NIOCore
-enum MemcachedRequest {
-    struct SetCommand {
+enum MemcachedRequest: Sendable {
+    struct SetCommand: Sendable {
         let key: String
         var value: ByteBuffer
         var flags: MemcachedFlags?
     }
 
-    struct GetCommand {
+    struct GetCommand: Sendable {
         let key: String
         var flags: MemcachedFlags
     }
 
-    struct DeleteCommand {
+    struct DeleteCommand: Sendable {
         let key: String
     }
 
