@@ -37,6 +37,11 @@ struct MemcachedFlags {
     /// The default mode is 'set'.
     var storageMode: StorageMode?
 
+    /// Flag 'M' for the 'ma' (meta arithmetic) command.
+    ///
+    /// Represents the mode of the 'ma' command, which determines the behavior of the arithmetic operation.
+    var arithmeticMode: ArithmeticMode?
+
     init() {}
 }
 
@@ -58,6 +63,14 @@ enum StorageMode: Equatable, Hashable {
     case prepend
     /// The "replace" command. The new value is set only if the item already exists.
     case replace
+}
+
+/// Enum representing the mode for the 'ma' (meta arithmetic) command in Memcached (corresponding to the 'M' flag).
+enum ArithmeticMode: Equatable, Hashable {
+    /// 'increment' command. If applied, it increases the numerical value of the item.
+    case increment(Int)
+    /// 'decrement' command. If applied, it decreases the numerical value of the item.
+    case decrement(Int)
 }
 
 extension MemcachedFlags: Hashable {}
