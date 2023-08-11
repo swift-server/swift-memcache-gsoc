@@ -154,9 +154,13 @@ extension MemcachedError {
     /// A high level indication of the kind of error being thrown.
     public struct Code: Hashable, Sendable, CustomStringConvertible {
         private enum Wrapped: Hashable, Sendable, CustomStringConvertible {
+            /// Indicates that the connection has shut down.
             case connectionShutdown
+            /// Indicates that a nil response was received from the server.
             case unexpectedNilResponse
+            /// Indicates that the key was not found.
             case keyNotFound
+            /// Indicates that the key already exist
             case keyExist
 
             var description: String {
