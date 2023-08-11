@@ -53,18 +53,6 @@ public actor MemcachedConnection {
         case finished
     }
 
-    /// Enum representing the possible errors that can be encountered in `MemcachedConnection`.
-    enum MemcachedConnectionError: Error {
-        /// Indicates that the connection has shut down.
-        case connectionShutdown
-        /// Indicates that a nil response was received from the server.
-        case unexpectedNilResponse
-        /// Indicates that the key was not found.
-        case keyNotFound
-        /// Indicates that the key already exist
-        case keyExist
-    }
-
     private var state: State
 
     /// Initialize a new MemcachedConnection.
@@ -92,7 +80,12 @@ public actor MemcachedConnection {
     /// to the server is finished or the task that called this method is cancelled.
     public func run() async throws {
         guard case .initial(let eventLoopGroup, let bufferAllocator, let stream, let continuation) = state else {
-            throw MemcachedConnectionError.connectionShutdown
+            throw MemcachedError(
+                code: .connectionShutdown,
+                message: "The connection to the Memcached server has shut down.",
+                cause: nil,
+                location: MemcachedError.SourceLocation.here()
+            )
         }
 
         let channel = try await ClientBootstrap(group: eventLoopGroup)
@@ -128,7 +121,12 @@ public actor MemcachedConnection {
                     case .running:
                         self.state = .finished
                         requestContinuation.finish()
-                        continuation.resume(throwing: error)
+                        continuation.resume(throwing: MemcachedError(
+                            code: .connectionShutdown,
+                            message: "The connection to the Memcached server has shut down while processing a request.",
+                            cause: error,
+                            location: MemcachedError.SourceLocation.here()
+                        ))
                     case .initial, .finished:
                         break
                     }
@@ -151,14 +149,24 @@ public actor MemcachedConnection {
                 case .enqueued:
                     break
                 case .dropped, .terminated:
-                    continuation.resume(throwing: MemcachedConnectionError.connectionShutdown)
+                    continuation.resume(throwing: MemcachedError(
+                        code: .connectionShutdown,
+                        message: "Unable to enqueue request due to the connection being dropped or terminated.",
+                        cause: nil,
+                        location: MemcachedError.SourceLocation.here()
+                    ))
                 default:
                     break
                 }
             }
 
         case .finished:
-            throw MemcachedConnectionError.connectionShutdown
+            throw MemcachedError(
+                code: .connectionShutdown,
+                message: "The connection to the Memcached server has shut down.",
+                cause: nil,
+                location: MemcachedError.SourceLocation.here()
+            )
         }
     }
 
@@ -184,10 +192,20 @@ public actor MemcachedConnection {
             if var unwrappedResponse = response {
                 return Value.readFromBuffer(&unwrappedResponse)
             } else {
-                throw MemcachedConnectionError.unexpectedNilResponse
+                throw MemcachedError(
+                    code: .unexpectedNilResponse,
+                    message: "Received an unexpected nil response from the Memcached server.",
+                    cause: nil,
+                    location: MemcachedError.SourceLocation.here()
+                )
             }
         case .finished:
-            throw MemcachedConnectionError.connectionShutdown
+            throw MemcachedError(
+                code: .connectionShutdown,
+                message: "The connection to the Memcached server has shut down.",
+                cause: nil,
+                location: MemcachedError.SourceLocation.here()
+            )
         }
     }
 
@@ -200,7 +218,7 @@ public actor MemcachedConnection {
     /// - Parameters:
     ///   - key: The key to update the time-to-live for.
     ///   - newTimeToLive: The new time-to-live.
-    /// - Throws: A `MemcachedConnectionError` if the connection is shutdown or if there's an unexpected nil response.
+    /// - Throws: A `MemcachedError` with the code `.connectionShutdown` if the connection to the Memcache server is shut down.
     public func touch(_ key: String, newTimeToLive: TimeToLive) async throws {
         switch self.state {
         case .initial(_, _, _, _),
@@ -215,7 +233,12 @@ public actor MemcachedConnection {
             _ = try await self.sendRequest(request)
 
         case .finished:
-            throw MemcachedConnectionError.connectionShutdown
+            throw MemcachedError(
+                code: .connectionShutdown,
+                message: "The connection to the Memcached server has shut down.",
+                cause: nil,
+                location: MemcachedError.SourceLocation.here()
+            )
         }
     }
 
@@ -229,7 +252,7 @@ public actor MemcachedConnection {
     ///   - expiration: An optional `TimeToLive` value specifying the TTL (Time-To-Live) for the key-value pair.
     ///     If provided, the key-value pair will be removed from the cache after the specified TTL duration has passed.
     ///     If not provided, the key-value pair will persist indefinitely in the cache.
-    /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
+    /// - Throws: A `MemcachedError` with the code `.connectionShutdown` if the connection to the Memcache server is shut down.
     public func set(_ key: String, value: some MemcachedValue, timeToLive: TimeToLive = .indefinitely) async throws {
         switch self.state {
         case .initial(_, let bufferAllocator, _, _),
@@ -248,7 +271,12 @@ public actor MemcachedConnection {
             _ = try await self.sendRequest(request)
 
         case .finished:
-            throw MemcachedConnectionError.connectionShutdown
+            throw MemcachedError(
+                code: .connectionShutdown,
+                message: "The connection to the Memcached server has shut down.",
+                cause: nil,
+                location: MemcachedError.SourceLocation.here()
+            )
         }
     }
 
@@ -257,8 +285,9 @@ public actor MemcachedConnection {
     /// Delete the value for a key from the Memcache server.
     ///
     /// - Parameter key: The key of the item to be deleted.
-    /// - Throws: A `MemcachedConnectionError.connectionShutdown` error if the connection to the Memcache server is shut down.
-    /// - Throws: A `MemcachedConnectionError.unexpectedNilResponse` error if the key was not found or if an unexpected response code was returned.
+    /// - Throws: A `MemcachedError` with the code `.connectionShutdown` if the connection to the Memcache server is shut down.
+    /// - Throws: A `MemcachedError` with the code `.keyNotFound` if the key was not found.
+    /// - Throws: A `MemcachedError` with the code `.unexpectedNilResponse` if an unexpected response code was returned.
     public func delete(_ key: String) async throws {
         switch self.state {
         case .initial(_, _, _, _),
@@ -273,13 +302,28 @@ public actor MemcachedConnection {
             case .HD:
                 return
             case .NF:
-                throw MemcachedConnectionError.keyNotFound
+                throw MemcachedError(
+                    code: .keyNotFound,
+                    message: "The specified key was not found.",
+                    cause: nil,
+                    location: MemcachedError.SourceLocation.here()
+                )
             default:
-                throw MemcachedConnectionError.unexpectedNilResponse
+                throw MemcachedError(
+                    code: .unexpectedNilResponse,
+                    message: "Received an unexpected nil response from the Memcached server.",
+                    cause: nil,
+                    location: MemcachedError.SourceLocation.here()
+                )
             }
 
         case .finished:
-            throw MemcachedConnectionError.connectionShutdown
+            throw MemcachedError(
+                code: .connectionShutdown,
+                message: "The connection to the Memcached server has shut down.",
+                cause: nil,
+                location: MemcachedError.SourceLocation.here()
+            )
         }
     }
 
@@ -290,7 +334,7 @@ public actor MemcachedConnection {
     /// - Parameters:
     ///   - key: The key to prepend the value to.
     ///   - value: The `MemcachedValue` to prepend.
-    /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
+    /// - Throws: A `MemcachedError` with the code `.connectionShutdown` if the connection to the Memcache server is shut down.
     public func prepend(_ key: String, value: some MemcachedValue) async throws {
         switch self.state {
         case .initial(_, let bufferAllocator, _, _),
@@ -309,7 +353,12 @@ public actor MemcachedConnection {
             _ = try await self.sendRequest(request)
 
         case .finished:
-            throw MemcachedConnectionError.connectionShutdown
+            throw MemcachedError(
+                code: .connectionShutdown,
+                message: "The connection to the Memcached server has shut down.",
+                cause: nil,
+                location: MemcachedError.SourceLocation.here()
+            )
         }
     }
 
@@ -320,7 +369,7 @@ public actor MemcachedConnection {
     /// - Parameters:
     ///   - key: The key to append the value to.
     ///   - value: The `MemcachedValue` to append.
-    /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
+    /// - Throws: A `MemcachedError` with the code `.connectionShutdown` if the connection to the Memcache server is shut down.
     public func append(_ key: String, value: some MemcachedValue) async throws {
         switch self.state {
         case .initial(_, let bufferAllocator, _, _),
@@ -339,7 +388,12 @@ public actor MemcachedConnection {
             _ = try await self.sendRequest(request)
 
         case .finished:
-            throw MemcachedConnectionError.connectionShutdown
+            throw MemcachedError(
+                code: .connectionShutdown,
+                message: "The connection to the Memcached server has shut down.",
+                cause: nil,
+                location: MemcachedError.SourceLocation.here()
+            )
         }
     }
 
@@ -351,9 +405,9 @@ public actor MemcachedConnection {
     /// - Parameters:
     ///   - key: The key to add the value to.
     ///   - value: The `MemcachedValue` to add.
-    /// - Throws: A `MemcachedConnectionError.connectionShutdown` if the connection to the Memcached server is shut down.
-    /// - Throws: A `MemcachedConnectionError.keyExist` if the key already exists in the Memcached server.
-    /// - Throws: A `MemcachedConnectionError.unexpectedNilResponse` if an unexpected response code is returned.
+    /// - Throws: A `MemcachedError` with the code `.connectionShutdown` if the connection to the Memcache server is shut down.
+    /// - Throws: A `MemcachedError` with the code `.keyExist` if the key already exist.
+    /// - Throws: A `MemcachedError` with the code `.unexpectedNilResponse` if an unexpected response code was returned.
     public func add(_ key: String, value: some MemcachedValue) async throws {
         switch self.state {
         case .initial(_, let bufferAllocator, _, _),
@@ -375,13 +429,28 @@ public actor MemcachedConnection {
             case .HD:
                 return
             case .NS:
-                throw MemcachedConnectionError.keyExist
+                throw MemcachedError(
+                    code: .keyExist,
+                    message: "The specified key already exist.",
+                    cause: nil,
+                    location: MemcachedError.SourceLocation.here()
+                )
             default:
-                throw MemcachedConnectionError.unexpectedNilResponse
+                throw MemcachedError(
+                    code: .unexpectedNilResponse,
+                    message: "Received an unexpected nil response from the Memcached server.",
+                    cause: nil,
+                    location: MemcachedError.SourceLocation.here()
+                )
             }
 
         case .finished:
-            throw MemcachedConnectionError.connectionShutdown
+            throw MemcachedError(
+                code: .connectionShutdown,
+                message: "The connection to the Memcached server has shut down.",
+                cause: nil,
+                location: MemcachedError.SourceLocation.here()
+            )
         }
     }
 
@@ -393,7 +462,7 @@ public actor MemcachedConnection {
     /// - Parameters:
     ///   - key: The key to replace the value for.
     ///   - value: The `MemcachedValue` to replace.
-    /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
+    /// - Throws: A `MemcachedError` with the code `.connectionShutdown` if the connection to the Memcache server is shut down.
     public func replace(_ key: String, value: some MemcachedValue) async throws {
         switch self.state {
         case .initial(_, let bufferAllocator, _, _),
@@ -415,13 +484,28 @@ public actor MemcachedConnection {
             case .HD:
                 return
             case .NS:
-                throw MemcachedConnectionError.keyNotFound
+                throw MemcachedError(
+                    code: .keyNotFound,
+                    message: "The specified key was not found.",
+                    cause: nil,
+                    location: MemcachedError.SourceLocation.here()
+                )
             default:
-                throw MemcachedConnectionError.unexpectedNilResponse
+                throw MemcachedError(
+                    code: .unexpectedNilResponse,
+                    message: "Received an unexpected nil response from the Memcached server.",
+                    cause: nil,
+                    location: MemcachedError.SourceLocation.here()
+                )
             }
 
         case .finished:
-            throw MemcachedConnectionError.connectionShutdown
+            throw MemcachedError(
+                code: .connectionShutdown,
+                message: "The connection to the Memcached server has shut down.",
+                cause: nil,
+                location: MemcachedError.SourceLocation.here()
+            )
         }
     }
 
@@ -432,7 +516,7 @@ public actor MemcachedConnection {
     /// - Parameters:
     ///   - key: The key for the value to increment.
     ///   - amount: The `Int` amount to increment the value by. Must be larger than 0.
-    /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
+    /// - Throws: A `MemcachedError` with the code `.connectionShutdown` if the connection to the Memcache server is shut down.
     public func increment(_ key: String, amount: Int) async throws {
         // Ensure the amount is greater than 0
         precondition(amount > 0, "Amount to increment should be larger than 0")
@@ -450,7 +534,12 @@ public actor MemcachedConnection {
             _ = try await self.sendRequest(request)
 
         case .finished:
-            throw MemcachedConnectionError.connectionShutdown
+            throw MemcachedError(
+                code: .connectionShutdown,
+                message: "The connection to the Memcached server has shut down.",
+                cause: nil,
+                location: MemcachedError.SourceLocation.here()
+            )
         }
     }
 
@@ -461,7 +550,7 @@ public actor MemcachedConnection {
     /// - Parameters:
     ///   - key: The key for the value to decrement.
     ///   - amount: The `Int` amount to decrement the value by. Must be larger than 0.
-    /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
+    /// - Throws: A `MemcachedError` with the code `.connectionShutdown` if the connection to the Memcache server is shut down.
     public func decrement(_ key: String, amount: Int) async throws {
         // Ensure the amount is greater than 0
         precondition(amount > 0, "Amount to decrement should be larger than 0")
@@ -479,7 +568,12 @@ public actor MemcachedConnection {
             _ = try await self.sendRequest(request)
 
         case .finished:
-            throw MemcachedConnectionError.connectionShutdown
+            throw MemcachedError(
+                code: .connectionShutdown,
+                message: "The connection to the Memcached server has shut down.",
+                cause: nil,
+                location: MemcachedError.SourceLocation.here()
+            )
         }
     }
 }
