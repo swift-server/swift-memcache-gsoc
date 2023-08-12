@@ -424,4 +424,62 @@ public actor MemcachedConnection {
             throw MemcachedConnectionError.connectionShutdown
         }
     }
+
+    // MARK: - Increment a Value
+
+    /// Increment the value for an existing key in the Memcache server by a specified amount.
+    ///
+    /// - Parameters:
+    ///   - key: The key for the value to increment.
+    ///   - amount: The `Int` amount to increment the value by. Must be larger than 0.
+    /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
+    public func increment(_ key: String, amount: Int) async throws {
+        // Ensure the amount is greater than 0
+        precondition(amount > 0, "Amount to increment should be larger than 0")
+
+        switch self.state {
+        case .initial(_, _, _, _),
+             .running:
+
+            var flags = MemcachedFlags()
+            flags.arithmeticMode = .increment(amount)
+
+            let command = MemcachedRequest.ArithmeticCommand(key: key, flags: flags)
+            let request = MemcachedRequest.arithmetic(command)
+
+            _ = try await self.sendRequest(request)
+
+        case .finished:
+            throw MemcachedConnectionError.connectionShutdown
+        }
+    }
+
+    // MARK: - Decrement a Value
+
+    /// Decrement the value for an existing key in the Memcache server by a specified amount.
+    ///
+    /// - Parameters:
+    ///   - key: The key for the value to decrement.
+    ///   - amount: The `Int` amount to decrement the value by. Must be larger than 0.
+    /// - Throws: A `MemcachedConnectionError` if the connection to the Memcached server is shut down.
+    public func decrement(_ key: String, amount: Int) async throws {
+        // Ensure the amount is greater than 0
+        precondition(amount > 0, "Amount to decrement should be larger than 0")
+
+        switch self.state {
+        case .initial(_, _, _, _),
+             .running:
+
+            var flags = MemcachedFlags()
+            flags.arithmeticMode = .decrement(amount)
+
+            let command = MemcachedRequest.ArithmeticCommand(key: key, flags: flags)
+            let request = MemcachedRequest.arithmetic(command)
+
+            _ = try await self.sendRequest(request)
+
+        case .finished:
+            throw MemcachedConnectionError.connectionShutdown
+        }
+    }
 }

@@ -434,6 +434,62 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
+    func testIncrementValue() async throws {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await memcachedConnection.run() }
+
+            // Set key and initial value
+            let initialValue = 1
+            try await memcachedConnection.set("increment", value: initialValue)
+
+            // Increment value
+            let incrementAmount = 100
+            try await memcachedConnection.increment("increment", amount: incrementAmount)
+
+            // Get new value
+            let newValue: Int? = try await memcachedConnection.get("increment")
+
+            // Check if new value is equal to initial value plus increment amount
+            XCTAssertEqual(newValue, initialValue + incrementAmount, "Incremented value is incorrect")
+
+            group.cancelAll()
+        }
+    }
+
+    func testDecrementValue() async throws {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try! group.syncShutdownGracefully())
+        }
+        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await memcachedConnection.run() }
+
+            // Set key and initial value
+            let initialValue = 100
+            try await memcachedConnection.set("decrement", value: initialValue)
+
+            // Increment value
+            let decrementAmount = 10
+            try await memcachedConnection.decrement("decrement", amount: decrementAmount)
+
+            // Get new value
+            let newValue: Int? = try await memcachedConnection.get("decrement")
+
+            // Check if new value is equal to initial value plus increment amount
+            XCTAssertEqual(newValue, initialValue - decrementAmount, "Incremented value is incorrect")
+
+            group.cancelAll()
+        }
+    }
+
     func testMemcachedConnectionWithUInt() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {

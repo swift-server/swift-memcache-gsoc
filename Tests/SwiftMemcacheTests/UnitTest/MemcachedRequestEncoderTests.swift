@@ -169,4 +169,32 @@ final class MemcachedRequestEncoderTests: XCTestCase {
         let expectedEncodedData = "md foo\r\n"
         XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
     }
+
+    func testEncodeIncrementRequest() {
+        // Prepare a MemcachedRequest
+        var flags = MemcachedFlags()
+        flags.arithmeticMode = .increment(100)
+        let command = MemcachedRequest.ArithmeticCommand(key: "foo", flags: flags)
+        let request = MemcachedRequest.arithmetic(command)
+
+        // pass our request through the encoder
+        let outBuffer = self.encodeRequest(request)
+
+        let expectedEncodedData = "ma foo M+ D100\r\n"
+        XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
+    }
+
+    func testEncodeDecrementRequest() {
+        // Prepare a MemcachedRequest
+        var flags = MemcachedFlags()
+        flags.arithmeticMode = .decrement(100)
+        let command = MemcachedRequest.ArithmeticCommand(key: "foo", flags: flags)
+        let request = MemcachedRequest.arithmetic(command)
+
+        // pass our request through the encoder
+        let outBuffer = self.encodeRequest(request)
+
+        let expectedEncodedData = "ma foo M- D100\r\n"
+        XCTAssertEqual(outBuffer.getString(at: 0, length: outBuffer.readableBytes), expectedEncodedData)
+    }
 }
