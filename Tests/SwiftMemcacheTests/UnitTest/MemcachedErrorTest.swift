@@ -30,7 +30,7 @@ final class MemcachedErrorTests: XCTestCase {
 
     func testCustomStringConvertible() {
         let location = MemcachedError.SourceLocation.here()
-        let causeError = MemcachedError(code: .unexpectedNilResponse, message: "No response", cause: nil, location: location)
+        let causeError = MemcachedError(code: .protocolError, message: "No response", cause: nil, location: location)
         let mainError = MemcachedError(code: .connectionShutdown, message: "Connection lost", cause: causeError, location: location)
 
         let description = mainError.description
@@ -52,7 +52,7 @@ final class MemcachedErrorTests: XCTestCase {
 
     func testDetailedDescription() {
         let location = MemcachedError.SourceLocation.here()
-        let causeError = MemcachedError(code: .unexpectedNilResponse, message: "No response", cause: nil, location: location)
+        let causeError = MemcachedError(code: .protocolError, message: "No response", cause: nil, location: location)
         let mainError = MemcachedError(code: .connectionShutdown, message: "Connection lost", cause: causeError, location: location)
 
         let detailedDesc = mainError.detailedDescription()

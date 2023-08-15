@@ -46,7 +46,7 @@ public struct MemcachedError: Error, @unchecked Sendable {
         }
     }
 
-    /// A high-level error code to provide broad a classification.
+    /// A high-level error code to provide a broad classification.
     public var code: Code {
         get { self.storage.code }
         set {
@@ -156,8 +156,8 @@ extension MemcachedError {
         private enum Wrapped: Hashable, Sendable, CustomStringConvertible {
             /// Indicates that the connection has shut down.
             case connectionShutdown
-            /// Indicates that a nil response was received from the server.
-            case unexpectedNilResponse
+            /// Indicates that there was a violation or inconsistency in the expected Memcached protocol behavior.
+            case protocolError
             /// Indicates that the key was not found.
             case keyNotFound
             /// Indicates that the key already exist
@@ -167,8 +167,8 @@ extension MemcachedError {
                 switch self {
                 case .connectionShutdown:
                     return "Connection shutdown"
-                case .unexpectedNilResponse:
-                    return "Unexpected nil response"
+                case .protocolError:
+                    return "Protocol Error"
                 case .keyNotFound:
                     return "Key not Found"
                 case .keyExist:
@@ -192,8 +192,8 @@ extension MemcachedError {
         }
 
         /// Indicates that a nil response was received from the server.
-        public static var unexpectedNilResponse: Self {
-            Self(.unexpectedNilResponse)
+        public static var protocolError: Self {
+            Self(.protocolError)
         }
 
         /// Indicates that the key was not found.
