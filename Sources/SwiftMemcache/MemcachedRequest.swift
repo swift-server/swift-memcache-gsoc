@@ -29,7 +29,7 @@ enum MemcachedRequest: Sendable {
         let key: String
     }
 
-    struct ArithmeticCommand {
+    struct ArithmeticCommand: Sendable {
         let key: String
         var flags: MemcachedFlags
     }
