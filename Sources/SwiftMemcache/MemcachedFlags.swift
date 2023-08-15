@@ -18,7 +18,7 @@
 /// The 'v' flag for the meta get command dictates whether the item value should be returned in the data block.
 /// The 'T' flag is used for both the meta get and meta set commands to specify the Time-To-Live (TTL) for an item.
 /// The 't' flag for the meta get command indicates whether the Time-To-Live (TTL) for the item should be returned.
-struct MemcachedFlags {
+struct MemcachedFlags: Sendable {
     /// Flag 'v' for the 'mg' (meta get) command.
     ///
     /// If true, the item value is returned in the data block.
@@ -46,7 +46,7 @@ struct MemcachedFlags {
 }
 
 /// Enum representing the Time-To-Live (TTL) of a Memcached value.
-public enum TimeToLive: Equatable, Hashable {
+public enum TimeToLive: Sendable, Equatable, Hashable {
     /// The value should never expire.
     case indefinitely
     /// The value should expire after a specified time.
