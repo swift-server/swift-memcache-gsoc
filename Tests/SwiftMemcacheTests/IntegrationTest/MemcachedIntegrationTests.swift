@@ -322,10 +322,10 @@ final class MemcachedIntegrationTest: XCTestCase {
             // Attempt to delete the key, but ignore the error if it doesn't exist
             do {
                 try await memcachedConnection.delete("adds")
+            } catch let error as MemcachedError where error.code == .keyNotFound {
+                // Expected that the key might not exist, so just continue
             } catch {
-                if "\(error)" != "keyNotFound" {
-                    throw error
-                }
+                XCTFail("Unexpected error during deletion: \(error)")
             }
 
             // Proceed with adding the key-value pair
@@ -356,8 +356,11 @@ final class MemcachedIntegrationTest: XCTestCase {
             // Attempt to delete the key, but ignore the error if it doesn't exist
             do {
                 try await memcachedConnection.delete("adds")
-            } catch {
-                if "\(error)" != "keyNotFound" {
+            } catch let error as MemcachedError {
+                switch error.code {
+                case .keyNotFound:
+                    break
+                default:
                     throw error
                 }
             }
@@ -369,9 +372,12 @@ final class MemcachedIntegrationTest: XCTestCase {
                 // Attempt to add a new value to the existing key
                 try await memcachedConnection.add("adds", value: newValue)
                 XCTFail("Expected an error indicating the key exists, but no error was thrown.")
-            } catch {
-                // Check if the error description or localized description matches the expected error
-                if "\(error)" != "keyExist" {
+            } catch let error as MemcachedError {
+                switch error.code {
+                case .keyExist:
+                    // Expected error
+                    break
+                default:
                     XCTFail("Unexpected error: \(error)")
                 }
             }
@@ -413,19 +419,30 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
         let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
-        await withThrowingTaskGroup(of: Void.self) { group in
+        try await withThrowingTaskGroup(of: Void.self) { group in
             group.addTask { try await memcachedConnection.run() }
 
+            // Ensure the key is clean
             do {
-                // Ensure the key is clean
                 try await memcachedConnection.delete("nonExistentKey")
+            } catch let error as MemcachedError where error.code == .keyNotFound {
+                // Expected that the key might not exist, so just continue
+            } catch {
+                XCTFail("Unexpected error during deletion: \(error)")
+                return
+            }
+
+            do {
                 // Attempt to replace value for a non-existent key
                 let replaceValue = "testValue"
                 try await memcachedConnection.replace("nonExistentKey", value: replaceValue)
                 XCTFail("Expected an error indicating the key was not found, but no error was thrown.")
-            } catch {
-                // Check if the error description or localized description matches the expected error
-                if "\(error)" != "keyNotFound" {
+            } catch let error as MemcachedError {
+                switch error.code {
+                case .keyNotFound:
+                    // Expected error
+                    break
+                default:
                     XCTFail("Unexpected error: \(error)")
                 }
             }
