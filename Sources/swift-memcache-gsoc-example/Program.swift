@@ -29,16 +29,8 @@ struct Program {
         // Instantiate a new MemcacheConnection actor with host, port, and event loop group
         let memcacheConnection = MemcachedConnection(host: "127.0.0.1", port: 11211, eventLoopGroup: eventLoopGroup)
 
-        // Initialize the ServiceGroupConfiguration
-        let serviceGroupConfiguration = ServiceGroupConfiguration(
-            services: [ServiceGroupConfiguration.ServiceConfiguration(service: memcacheConnection)],
-            gracefulShutdownSignals: [],
-            cancellationSignals: [],
-            logger: self.logger
-        )
-
         // Initialize the service group
-        let serviceGroup = ServiceGroup(configuration: serviceGroupConfiguration)
+        let serviceGroup = ServiceGroup(services: [memcacheConnection], logger: self.logger)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
             // Add the connection actor's run function to the task group
