@@ -15,12 +15,11 @@
 
 import NIOCore
 import NIOPosix
-import ServiceLifecycle
 
 /// An actor to create a connection to a Memcache server.
 ///
 /// This actor can be used to send commands to the server.
-public actor MemcacheConnection: Service {
+public actor MemcacheConnection {
     private typealias StreamElement = (MemcacheRequest, CheckedContinuation<MemcacheResponse, Error>)
     private let host: String
     private let port: Int

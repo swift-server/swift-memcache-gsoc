@@ -16,7 +16,6 @@ import Logging
 import Memcache
 import NIOCore
 import NIOPosix
-import ServiceLifecycle
 
 @main
 struct Program {
