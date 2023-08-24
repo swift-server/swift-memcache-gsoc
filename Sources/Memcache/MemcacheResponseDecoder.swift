@@ -48,11 +48,11 @@ import NIOPosix
 ///
 /// For usage examples beyond basic syntax, please see the wiki:
 /// https://github.com/memcached/memcached/wiki/MetaCommands
-struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
-    typealias InboundOut = MemcachedResponse
+struct MemcacheResponseDecoder: NIOSingleStepByteToMessageDecoder {
+    typealias InboundOut = MemcacheResponse
 
     /// Describes the errors that can occur during the decoding process.
-    enum MemcachedDecoderError: Error {
+    enum MemcacheDecoderError: Error {
         /// This error is thrown when EOF is encountered but there are still
         /// readable bytes in the buffer, which can indicate a bad message.
         case unexpectedEOF
@@ -71,11 +71,11 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         /// The initial step.
         case returnCode
         /// Decode the data length
-        case dataLength(MemcachedResponse.ReturnCode)
+        case dataLength(MemcacheResponse.ReturnCode)
         /// Decode the flags
-        case decodeFlag(MemcachedResponse.ReturnCode, UInt64?)
+        case decodeFlag(MemcacheResponse.ReturnCode, UInt64?)
         /// Decode the Value
-        case decodeValue(MemcachedResponse.ReturnCode, UInt64, MemcachedFlags)
+        case decodeValue(MemcacheResponse.ReturnCode, UInt64, MemcacheFlags)
     }
 
     /// The action that the decoder will take in response to the current state of the ByteBuffer and the `NextStep`.
@@ -85,7 +85,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         /// We can continue decoding.
         case continueDecodeLoop
         /// We have decoded the next response and need to return it.
-        case returnDecodedResponse(MemcachedResponse)
+        case returnDecodedResponse(MemcacheResponse)
     }
 
     /// The next step in decoding.
@@ -119,7 +119,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
                 return .waitForMoreBytes
             }
 
-            let returnCode = MemcachedResponse.ReturnCode(bytes)
+            let returnCode = MemcacheResponse.ReturnCode(bytes)
             self.nextStep = .dataLength(returnCode)
             return .continueDecodeLoop
 
@@ -135,7 +135,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
                 }
 
                 guard let dataLength: UInt64 = buffer.readIntegerFromASCII() else {
-                    throw MemcachedDecoderError.unexpectedCharacter(buffer.readableBytesView[buffer.readerIndex])
+                    throw MemcacheDecoderError.unexpectedCharacter(buffer.readableBytesView[buffer.readerIndex])
                 }
 
                 self.nextStep = .decodeFlag(returnCode, dataLength)
@@ -147,7 +147,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
 
         case .decodeFlag(let returnCode, let dataLength):
             if let nextByte = buffer.getInteger(at: buffer.readerIndex, as: UInt8.self), nextByte == UInt8.newline {
-                self.nextStep = .decodeValue(returnCode, dataLength!, MemcachedFlags())
+                self.nextStep = .decodeValue(returnCode, dataLength!, MemcacheFlags())
                 buffer.moveReaderIndex(forwardBy: 1)
                 return .continueDecodeLoop
             }
@@ -156,13 +156,13 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
                 buffer.moveReaderIndex(forwardBy: 1)
             }
 
-            let flags = buffer.readMemcachedFlags()
+            let flags = buffer.readMemcacheFlags()
 
             if returnCode == .VA {
                 self.nextStep = .decodeValue(returnCode, dataLength!, flags)
                 return .continueDecodeLoop
             } else {
-                let response = MemcachedResponse(returnCode: returnCode, dataLength: dataLength, flags: flags, value: nil)
+                let response = MemcacheResponse(returnCode: returnCode, dataLength: dataLength, flags: flags, value: nil)
                 self.nextStep = .returnCode
                 return .returnDecodedResponse(response)
             }
@@ -173,7 +173,7 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
             }
 
             guard let data = buffer.readSlice(length: Int(dataLength)) else {
-                throw MemcachedDecoderError.unexpectedEOF
+                throw MemcacheDecoderError.unexpectedEOF
             }
 
             guard buffer.readableBytes >= 2,
@@ -184,13 +184,13 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
                 preconditionFailure("Expected to find CRLF at end of response")
             }
 
-            let response = MemcachedResponse(returnCode: returnCode, dataLength: dataLength, flags: flags, value: data)
+            let response = MemcacheResponse(returnCode: returnCode, dataLength: dataLength, flags: flags, value: data)
             self.nextStep = .returnCode
             return .returnDecodedResponse(response)
         }
     }
 
-    mutating func decodeLast(buffer: inout ByteBuffer, seenEOF: Bool) throws -> MemcachedResponse? {
+    mutating func decodeLast(buffer: inout ByteBuffer, seenEOF: Bool) throws -> MemcacheResponse? {
         // Try to decode what is left in the buffer.
         if let output = try self.decode(buffer: &buffer) {
             return output
@@ -199,14 +199,14 @@ struct MemcachedResponseDecoder: NIOSingleStepByteToMessageDecoder {
         guard buffer.readableBytes == 0 || seenEOF else {
             // If there are still readable bytes left and we haven't seen an EOF
             // then something is wrong with the message or how we called the decoder.
-            throw MemcachedDecoderError.unexpectedEOF
+            throw MemcacheDecoderError.unexpectedEOF
         }
 
         switch self.nextStep {
         case .returnCode:
             return nil
         default:
-            throw MemcachedDecoderError.unexpectedNextStep(self.nextStep)
+            throw MemcacheDecoderError.unexpectedNextStep(self.nextStep)
         }
     }
 }

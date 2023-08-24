@@ -13,16 +13,16 @@
 //===----------------------------------------------------------------------===//
 
 import NIOCore
-enum MemcachedRequest: Sendable {
+enum MemcacheRequest: Sendable {
     struct SetCommand: Sendable {
         let key: String
         var value: ByteBuffer
-        var flags: MemcachedFlags?
+        var flags: MemcacheFlags?
     }
 
     struct GetCommand: Sendable {
         let key: String
-        var flags: MemcachedFlags
+        var flags: MemcacheFlags
     }
 
     struct DeleteCommand: Sendable {
@@ -31,7 +31,7 @@ enum MemcachedRequest: Sendable {
 
     struct ArithmeticCommand: Sendable {
         let key: String
-        var flags: MemcachedFlags
+        var flags: MemcacheFlags
     }
 
     case set(SetCommand)

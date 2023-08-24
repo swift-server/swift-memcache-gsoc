@@ -15,10 +15,10 @@
 import NIOCore
 import NIOPosix
 
-struct MemcachedRequestEncoder: MessageToByteEncoder {
-    typealias OutboundIn = MemcachedRequest
+struct MemcacheRequestEncoder: MessageToByteEncoder {
+    typealias OutboundIn = MemcacheRequest
 
-    func encode(data: MemcachedRequest, out: inout ByteBuffer) throws {
+    func encode(data: MemcacheRequest, out: inout ByteBuffer) throws {
         switch data {
         case .set(var command):
             precondition(!command.key.isEmpty, "Key must not be empty")
@@ -36,7 +36,7 @@ struct MemcachedRequestEncoder: MessageToByteEncoder {
 
             // write flags if there are any
             if let flags = command.flags {
-                out.writeMemcachedFlags(flags: flags)
+                out.writeMemcacheFlags(flags: flags)
             }
 
             // write separator
@@ -58,7 +58,7 @@ struct MemcachedRequestEncoder: MessageToByteEncoder {
             out.writeBytes(command.key.utf8)
 
             // write flags if there are any
-            out.writeMemcachedFlags(flags: command.flags)
+            out.writeMemcacheFlags(flags: command.flags)
 
             // write separator
             out.writeInteger(UInt8.carriageReturn)
@@ -87,7 +87,7 @@ struct MemcachedRequestEncoder: MessageToByteEncoder {
             out.writeBytes(command.key.utf8)
 
             // write flags if there are any
-            out.writeMemcachedFlags(flags: command.flags)
+            out.writeMemcacheFlags(flags: command.flags)
 
             // write separator
             out.writeInteger(UInt8.carriageReturn)

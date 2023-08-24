@@ -12,11 +12,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+@testable import Memcache
 import NIOCore
-@testable import SwiftMemcache
 import XCTest
 
-final class MemcachedTimeToLiveTests: XCTestCase {
+final class MemcacheTimeToLiveTests: XCTestCase {
     let clock = ContinuousClock()
 
     func testIndefinitelyTTL() {

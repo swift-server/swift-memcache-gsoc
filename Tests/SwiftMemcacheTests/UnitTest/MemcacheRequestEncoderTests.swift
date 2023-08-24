@@ -12,19 +12,19 @@
 //
 //===----------------------------------------------------------------------===//
 
+@testable import Memcache
 import NIOCore
-@testable import SwiftMemcache
 import XCTest
 
-final class MemcachedRequestEncoderTests: XCTestCase {
-    var encoder: MemcachedRequestEncoder!
+final class MemcacheRequestEncoderTests: XCTestCase {
+    var encoder: MemcacheRequestEncoder!
 
     override func setUp() {
         super.setUp()
-        self.encoder = MemcachedRequestEncoder()
+        self.encoder = MemcacheRequestEncoder()
     }
 
-    func encodeRequest(_ request: MemcachedRequest) -> ByteBuffer {
+    func encodeRequest(_ request: MemcacheRequest) -> ByteBuffer {
         var outBuffer = ByteBufferAllocator().buffer(capacity: 0)
         do {
             try self.encoder.encode(data: request, out: &outBuffer)
@@ -35,11 +35,11 @@ final class MemcachedRequestEncoderTests: XCTestCase {
     }
 
     func testEncodeSetRequest() {
-        // Prepare a MemcachedRequest
+        // Prepare a MemcacheRequest
         var buffer = ByteBufferAllocator().buffer(capacity: 2)
         buffer.writeString("hi")
-        let command = MemcachedRequest.SetCommand(key: "foo", value: buffer)
-        let request = MemcachedRequest.set(command)
+        let command = MemcacheRequest.SetCommand(key: "foo", value: buffer)
+        let request = MemcacheRequest.set(command)
 
         // pass our request through the encoder
         let outBuffer = self.encodeRequest(request)
@@ -49,14 +49,14 @@ final class MemcachedRequestEncoderTests: XCTestCase {
     }
 
     func testEncodeStorageRequest(withMode mode: StorageMode, expectedEncodedData: String) {
-        // Prepare a MemcachedRequest
+        // Prepare a MemcacheRequest
         var buffer = ByteBufferAllocator().buffer(capacity: 2)
         buffer.writeString("hi")
 
-        var flags = MemcachedFlags()
+        var flags = MemcacheFlags()
         flags.storageMode = mode
-        let command = MemcachedRequest.SetCommand(key: "foo", value: buffer, flags: flags)
-        let request = MemcachedRequest.set(command)
+        let command = MemcacheRequest.SetCommand(key: "foo", value: buffer, flags: flags)
+        let request = MemcacheRequest.set(command)
 
         // pass our request through the encoder
         let outBuffer = self.encodeRequest(request)
@@ -82,13 +82,13 @@ final class MemcachedRequestEncoderTests: XCTestCase {
     }
 
     func testEncodeTouchRequest() {
-        // Prepare a MemcachedRequest
-        var flags = MemcachedFlags()
+        // Prepare a MemcacheRequest
+        var flags = MemcacheFlags()
 
         let clock = ContinuousClock()
         flags.timeToLive = .expiresAt(clock.now.advanced(by: Duration.seconds(90)))
-        let command = MemcachedRequest.GetCommand(key: "foo", flags: flags)
-        let request = MemcachedRequest.get(command)
+        let command = MemcacheRequest.GetCommand(key: "foo", flags: flags)
+        let request = MemcacheRequest.get(command)
 
         // pass our request through the encoder
         let outBuffer = self.encodeRequest(request)
@@ -98,14 +98,14 @@ final class MemcachedRequestEncoderTests: XCTestCase {
     }
 
     func testEncodeLargeInstantRequest() {
-        // Prepare a MemcachedRequest
-        var flags = MemcachedFlags()
+        // Prepare a MemcacheRequest
+        var flags = MemcacheFlags()
 
         let clock = ContinuousClock()
         // 45 days
         flags.timeToLive = .expiresAt(clock.now.advanced(by: Duration.seconds(60 * 60 * 24 * 45)))
-        let command = MemcachedRequest.GetCommand(key: "foo", flags: flags)
-        let request = MemcachedRequest.get(command)
+        let command = MemcacheRequest.GetCommand(key: "foo", flags: flags)
+        let request = MemcacheRequest.get(command)
 
         // pass our request through the encoder
         let outBuffer = self.encodeRequest(request)
@@ -129,12 +129,12 @@ final class MemcachedRequestEncoderTests: XCTestCase {
     }
 
     func testEncodeIndefinitelyRequest() {
-        // Prepare a MemcachedRequest
-        var flags = MemcachedFlags()
+        // Prepare a MemcacheRequest
+        var flags = MemcacheFlags()
 
         flags.timeToLive = .indefinitely
-        let command = MemcachedRequest.GetCommand(key: "foo", flags: flags)
-        let request = MemcachedRequest.get(command)
+        let command = MemcacheRequest.GetCommand(key: "foo", flags: flags)
+        let request = MemcacheRequest.get(command)
 
         // pass our request through the encoder
         let outBuffer = self.encodeRequest(request)
@@ -144,12 +144,12 @@ final class MemcachedRequestEncoderTests: XCTestCase {
     }
 
     func testEncodeGetRequest() {
-        // Prepare a MemcachedRequest
-        var flags = MemcachedFlags()
+        // Prepare a MemcacheRequest
+        var flags = MemcacheFlags()
         flags.shouldReturnValue = true
-        let command = MemcachedRequest.GetCommand(key: "foo", flags: flags)
+        let command = MemcacheRequest.GetCommand(key: "foo", flags: flags)
 
-        let request = MemcachedRequest.get(command)
+        let request = MemcacheRequest.get(command)
 
         // pass our request through the encoder
         let outBuffer = self.encodeRequest(request)
@@ -159,9 +159,9 @@ final class MemcachedRequestEncoderTests: XCTestCase {
     }
 
     func testEncodeDeleteRequest() {
-        // Prepare a MemcachedRequest
-        let command = MemcachedRequest.DeleteCommand(key: "foo")
-        let request = MemcachedRequest.delete(command)
+        // Prepare a MemcacheRequest
+        let command = MemcacheRequest.DeleteCommand(key: "foo")
+        let request = MemcacheRequest.delete(command)
 
         // pass our request through the encoder
         let outBuffer = self.encodeRequest(request)
@@ -171,11 +171,11 @@ final class MemcachedRequestEncoderTests: XCTestCase {
     }
 
     func testEncodeIncrementRequest() {
-        // Prepare a MemcachedRequest
-        var flags = MemcachedFlags()
+        // Prepare a MemcacheRequest
+        var flags = MemcacheFlags()
         flags.arithmeticMode = .increment(100)
-        let command = MemcachedRequest.ArithmeticCommand(key: "foo", flags: flags)
-        let request = MemcachedRequest.arithmetic(command)
+        let command = MemcacheRequest.ArithmeticCommand(key: "foo", flags: flags)
+        let request = MemcacheRequest.arithmetic(command)
 
         // pass our request through the encoder
         let outBuffer = self.encodeRequest(request)
@@ -185,11 +185,11 @@ final class MemcachedRequestEncoderTests: XCTestCase {
     }
 
     func testEncodeDecrementRequest() {
-        // Prepare a MemcachedRequest
-        var flags = MemcachedFlags()
+        // Prepare a MemcacheRequest
+        var flags = MemcacheFlags()
         flags.arithmeticMode = .decrement(100)
-        let command = MemcachedRequest.ArithmeticCommand(key: "foo", flags: flags)
-        let request = MemcachedRequest.arithmetic(command)
+        let command = MemcacheRequest.ArithmeticCommand(key: "foo", flags: flags)
+        let request = MemcacheRequest.arithmetic(command)
 
         // pass our request through the encoder
         let outBuffer = self.encodeRequest(request)

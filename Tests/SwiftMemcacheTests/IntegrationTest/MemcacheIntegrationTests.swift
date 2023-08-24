@@ -12,12 +12,12 @@
 //
 //===----------------------------------------------------------------------===//
 
+@testable import Memcache
 import NIOCore
 import NIOPosix
-@testable import SwiftMemcache
 import XCTest
 
-final class MemcachedIntegrationTest: XCTestCase {
+final class MemcacheIntegrationTest: XCTestCase {
     var channel: ClientBootstrap!
     var group: EventLoopGroup!
 
@@ -27,7 +27,7 @@ final class MemcachedIntegrationTest: XCTestCase {
         self.channel = ClientBootstrap(group: self.group)
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelInitializer { channel in
-                return channel.pipeline.addHandlers([MessageToByteHandler(MemcachedRequestEncoder()), ByteToMessageHandler(MemcachedResponseDecoder())])
+                return channel.pipeline.addHandlers([MessageToByteHandler(MemcacheRequestEncoder()), ByteToMessageHandler(MemcacheResponseDecoder())])
             }
     }
 
@@ -37,11 +37,11 @@ final class MemcachedIntegrationTest: XCTestCase {
     }
 
     class ResponseHandler: ChannelInboundHandler {
-        typealias InboundIn = MemcachedResponse
+        typealias InboundIn = MemcacheResponse
 
-        let p: EventLoopPromise<MemcachedResponse>
+        let p: EventLoopPromise<MemcacheResponse>
 
-        init(p: EventLoopPromise<MemcachedResponse>) {
+        init(p: EventLoopPromise<MemcacheResponse>) {
             self.p = p
         }
 
@@ -51,22 +51,22 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
-    func testConnectionToMemcachedServer() throws {
+    func testConnectionToMemcacheServer() throws {
         do {
             let connection = try channel.connect(host: "memcached", port: 11211).wait()
             XCTAssertNotNil(connection)
 
-            // Prepare a MemcachedRequest
+            // Prepare a MemcacheRequest
             var buffer = ByteBufferAllocator().buffer(capacity: 3)
             buffer.writeString("hi")
-            let command = MemcachedRequest.SetCommand(key: "foo", value: buffer)
-            let request = MemcachedRequest.set(command)
+            let command = MemcacheRequest.SetCommand(key: "foo", value: buffer)
+            let request = MemcacheRequest.set(command)
 
             // Write the request to the connection
             _ = connection.write(request)
 
             // Prepare the promise for the response
-            let promise = connection.eventLoop.makePromise(of: MemcachedResponse.self)
+            let promise = connection.eventLoop.makePromise(of: MemcacheResponse.self)
             let responseHandler = ResponseHandler(p: promise)
             _ = connection.pipeline.addHandler(responseHandler)
 
@@ -81,26 +81,26 @@ final class MemcachedIntegrationTest: XCTestCase {
             print("Response return code: \(response.returnCode)")
 
         } catch {
-            XCTFail("Failed to connect to Memcached server: \(error)")
+            XCTFail("Failed to connect to Memcache server: \(error)")
         }
     }
 
-    func testMemcachedConnection() async throws {
+    func testMemcacheConnection() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let MemcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await MemcachedConnection.run() }
+            group.addTask { try await memcacheConnection.run() }
 
             // Set key and value
             let setValue = "foo"
-            try await MemcachedConnection.set("bar", value: setValue)
+            try await memcacheConnection.set("bar", value: setValue)
 
             // Get value for key
-            let getValue: String? = try await MemcachedConnection.get("bar")
+            let getValue: String? = try await memcacheConnection.get("bar")
             XCTAssertEqual(getValue, setValue, "Received value should be the same as sent")
             group.cancelAll()
         }
@@ -111,10 +111,10 @@ final class MemcachedIntegrationTest: XCTestCase {
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await memcachedConnection.run() }
+            group.addTask { try await memcacheConnection.run() }
 
             // Set a value for a key.
             let setValue = "foo"
@@ -122,10 +122,10 @@ final class MemcachedIntegrationTest: XCTestCase {
             let now = ContinuousClock.Instant.now
             let expirationTime = now.advanced(by: .seconds(90))
             let timeToLive = TimeToLive.expiresAt(expirationTime)
-            try await memcachedConnection.set("bar", value: setValue, timeToLive: timeToLive)
+            try await memcacheConnection.set("bar", value: setValue, timeToLive: timeToLive)
 
             // Get value for key
-            let getValue: String? = try await memcachedConnection.get("bar")
+            let getValue: String? = try await memcacheConnection.get("bar")
             XCTAssertEqual(getValue, setValue, "Received value should be the same as sent")
 
             group.cancelAll()
@@ -137,10 +137,10 @@ final class MemcachedIntegrationTest: XCTestCase {
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await memcachedConnection.run() }
+            group.addTask { try await memcacheConnection.run() }
 
             // Set key and value with a known Time-To-Live
             let setValue = "foo"
@@ -149,14 +149,14 @@ final class MemcachedIntegrationTest: XCTestCase {
             let now = ContinuousClock.Instant.now
             let expirationTime = now.advanced(by: .seconds(initialTTLValue))
             let timeToLive = TimeToLive.expiresAt(expirationTime)
-            try await memcachedConnection.set("bar", value: setValue, timeToLive: timeToLive)
+            try await memcacheConnection.set("bar", value: setValue, timeToLive: timeToLive)
 
             // Update the Time-To-Live for the key
             // New Time-To-Live in seconds
             let newTTLValue = 2222
             let newExpirationTime = now.advanced(by: .seconds(newTTLValue))
             let newExpiration = TimeToLive.expiresAt(newExpirationTime)
-            _ = try await memcachedConnection.touch("bar", newTimeToLive: newExpiration)
+            _ = try await memcacheConnection.touch("bar", newTimeToLive: newExpiration)
 
             group.cancelAll()
         }
@@ -167,10 +167,10 @@ final class MemcachedIntegrationTest: XCTestCase {
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await memcachedConnection.run() }
+            group.addTask { try await memcacheConnection.run() }
 
             // Set key and value with a known TTL
             let setValue = "foo"
@@ -179,18 +179,18 @@ final class MemcachedIntegrationTest: XCTestCase {
             let now = ContinuousClock.Instant.now
             let expirationTime = now.advanced(by: .seconds(initialTTLValue))
             let timeToLive = TimeToLive.expiresAt(expirationTime)
-            try await memcachedConnection.set("bar", value: setValue, timeToLive: timeToLive)
+            try await memcacheConnection.set("bar", value: setValue, timeToLive: timeToLive)
 
             // Update the Time-To-Live for the key to indefinite
             let newExpiration = TimeToLive.indefinitely
-            _ = try await memcachedConnection.touch("bar", newTimeToLive: newExpiration)
+            _ = try await memcacheConnection.touch("bar", newTimeToLive: newExpiration)
 
             // Wait for more than the initial Time-To-Live duration
             // Sleep for 1.5 seconds
             try await Task.sleep(for: .seconds(1.5))
 
             // Get the value and make sure it's still there
-            let value: String? = try await memcachedConnection.get("bar", as: String.self)
+            let value: String? = try await memcacheConnection.get("bar", as: String.self)
             XCTAssertNotNil(value, "Expected value to exist after TTL expiration time")
             XCTAssertEqual(value, setValue, "Expected value to match set value after TTL expiration time")
 
@@ -203,10 +203,10 @@ final class MemcachedIntegrationTest: XCTestCase {
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await memcachedConnection.run() }
+            group.addTask { try await memcacheConnection.run() }
 
             // Set key and value with a known Time-To-Live
             let setValue = "foo"
@@ -216,13 +216,13 @@ final class MemcachedIntegrationTest: XCTestCase {
             let now = ContinuousClock.Instant.now
             let expirationTime = now.advanced(by: .seconds(initialTTLValue))
             let timeToLive = TimeToLive.expiresAt(expirationTime)
-            try await memcachedConnection.set("bar", value: setValue, timeToLive: timeToLive)
+            try await memcacheConnection.set("bar", value: setValue, timeToLive: timeToLive)
 
             // Sleep for 1.5 seconds
             try await Task.sleep(for: .seconds(1.5))
 
             // Get the value and make sure it's still there
-            let value: String? = try await memcachedConnection.get("bar", as: String.self)
+            let value: String? = try await memcacheConnection.get("bar", as: String.self)
             XCTAssertNotNil(value, "Expected value to exist after waiting for 6 seconds")
             XCTAssertEqual(value, setValue, "Expected value to match set value after waiting for 6 seconds")
 
@@ -235,18 +235,18 @@ final class MemcachedIntegrationTest: XCTestCase {
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await memcachedConnection.run() }
+            group.addTask { try await memcacheConnection.run() }
 
             // Set key and value
             let setValue = "foo"
-            try await memcachedConnection.set("bar", value: setValue)
+            try await memcacheConnection.set("bar", value: setValue)
 
             // Delete the key
             do {
-                try await memcachedConnection.delete("bar")
+                try await memcacheConnection.delete("bar")
             } catch {
                 XCTFail("Deletion attempt should be successful, but threw: \(error)")
             }
@@ -259,21 +259,21 @@ final class MemcachedIntegrationTest: XCTestCase {
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await memcachedConnection.run() }
+            group.addTask { try await memcacheConnection.run() }
 
             // Set key and initial value
             let initialValue = "foo"
-            try await memcachedConnection.set("greet", value: initialValue)
+            try await memcacheConnection.set("greet", value: initialValue)
 
             // Prepend value to key
             let prependValue = "Hi"
-            try await memcachedConnection.prepend("greet", value: prependValue)
+            try await memcacheConnection.prepend("greet", value: prependValue)
 
             // Get value for key after prepend operation
-            let updatedValue: String? = try await memcachedConnection.get("greet")
+            let updatedValue: String? = try await memcacheConnection.get("greet")
             XCTAssertEqual(updatedValue, prependValue + initialValue, "Received value should be the same as the concatenation of prependValue and initialValue")
 
             group.cancelAll()
@@ -285,21 +285,21 @@ final class MemcachedIntegrationTest: XCTestCase {
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await memcachedConnection.run() }
+            group.addTask { try await memcacheConnection.run() }
 
             // Set key and initial value
             let initialValue = "hi"
-            try await memcachedConnection.set("greet", value: initialValue)
+            try await memcacheConnection.set("greet", value: initialValue)
 
             // Append value to key
             let appendValue = "foo"
-            try await memcachedConnection.append("greet", value: appendValue)
+            try await memcacheConnection.append("greet", value: appendValue)
 
             // Get value for key after append operation
-            let updatedValue: String? = try await memcachedConnection.get("greet")
+            let updatedValue: String? = try await memcacheConnection.get("greet")
             XCTAssertEqual(updatedValue, initialValue + appendValue, "Received value should be the same as the concatenation of initialValue and appendValue")
 
             group.cancelAll()
@@ -311,28 +311,28 @@ final class MemcachedIntegrationTest: XCTestCase {
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await memcachedConnection.run() }
+            group.addTask { try await memcacheConnection.run() }
 
             // Add a value to a key
             let addValue = "foo"
 
             // Attempt to delete the key, but ignore the error if it doesn't exist
             do {
-                try await memcachedConnection.delete("adds")
-            } catch let error as MemcachedError where error.code == .keyNotFound {
+                try await memcacheConnection.delete("adds")
+            } catch let error as MemcacheError where error.code == .keyNotFound {
                 // Expected that the key might not exist, so just continue
             } catch {
                 XCTFail("Unexpected error during deletion: \(error)")
             }
 
             // Proceed with adding the key-value pair
-            try await memcachedConnection.add("adds", value: addValue)
+            try await memcacheConnection.add("adds", value: addValue)
 
             // Get value for the key after add operation
-            let addedValue: String? = try await memcachedConnection.get("adds")
+            let addedValue: String? = try await memcacheConnection.get("adds")
             XCTAssertEqual(addedValue, addValue, "Received value should be the same as the added value")
 
             group.cancelAll()
@@ -344,10 +344,10 @@ final class MemcachedIntegrationTest: XCTestCase {
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await memcachedConnection.run() }
+            group.addTask { try await memcacheConnection.run() }
 
             // Add a value to a key
             let initialValue = "foo"
@@ -355,8 +355,8 @@ final class MemcachedIntegrationTest: XCTestCase {
 
             // Attempt to delete the key, but ignore the error if it doesn't exist
             do {
-                try await memcachedConnection.delete("adds")
-            } catch let error as MemcachedError {
+                try await memcacheConnection.delete("adds")
+            } catch let error as MemcacheError {
                 switch error.code {
                 case .keyNotFound:
                     break
@@ -366,13 +366,13 @@ final class MemcachedIntegrationTest: XCTestCase {
             }
 
             // Set an initial value for the key
-            try await memcachedConnection.add("adds", value: initialValue)
+            try await memcacheConnection.add("adds", value: initialValue)
 
             do {
                 // Attempt to add a new value to the existing key
-                try await memcachedConnection.add("adds", value: newValue)
+                try await memcacheConnection.add("adds", value: newValue)
                 XCTFail("Expected an error indicating the key exists, but no error was thrown.")
-            } catch let error as MemcachedError {
+            } catch let error as MemcacheError {
                 switch error.code {
                 case .keyExist:
                     // Expected error
@@ -391,21 +391,21 @@ final class MemcachedIntegrationTest: XCTestCase {
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await memcachedConnection.run() }
+            group.addTask { try await memcacheConnection.run() }
 
             // Set key and initial value
             let initialValue = "foo"
-            try await memcachedConnection.set("greet", value: initialValue)
+            try await memcacheConnection.set("greet", value: initialValue)
 
             // Replace value for the key
             let replaceValue = "hi"
-            try await memcachedConnection.replace("greet", value: replaceValue)
+            try await memcacheConnection.replace("greet", value: replaceValue)
 
             // Get value for the key after replace operation
-            let replacedValue: String? = try await memcachedConnection.get("greet")
+            let replacedValue: String? = try await memcacheConnection.get("greet")
             XCTAssertEqual(replacedValue, replaceValue, "Received value should be the same as the replaceValue")
 
             group.cancelAll()
@@ -417,15 +417,15 @@ final class MemcachedIntegrationTest: XCTestCase {
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await memcachedConnection.run() }
+            group.addTask { try await memcacheConnection.run() }
 
             // Ensure the key is clean
             do {
-                try await memcachedConnection.delete("nonExistentKey")
-            } catch let error as MemcachedError where error.code == .keyNotFound {
+                try await memcacheConnection.delete("nonExistentKey")
+            } catch let error as MemcacheError where error.code == .keyNotFound {
                 // Expected that the key might not exist, so just continue
             } catch {
                 XCTFail("Unexpected error during deletion: \(error)")
@@ -435,9 +435,9 @@ final class MemcachedIntegrationTest: XCTestCase {
             do {
                 // Attempt to replace value for a non-existent key
                 let replaceValue = "testValue"
-                try await memcachedConnection.replace("nonExistentKey", value: replaceValue)
+                try await memcacheConnection.replace("nonExistentKey", value: replaceValue)
                 XCTFail("Expected an error indicating the key was not found, but no error was thrown.")
-            } catch let error as MemcachedError {
+            } catch let error as MemcacheError {
                 switch error.code {
                 case .keyNotFound:
                     // Expected error
@@ -456,21 +456,21 @@ final class MemcachedIntegrationTest: XCTestCase {
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await memcachedConnection.run() }
+            group.addTask { try await memcacheConnection.run() }
 
             // Set key and initial value
             let initialValue = 1
-            try await memcachedConnection.set("increment", value: initialValue)
+            try await memcacheConnection.set("increment", value: initialValue)
 
             // Increment value
             let incrementAmount = 100
-            try await memcachedConnection.increment("increment", amount: incrementAmount)
+            try await memcacheConnection.increment("increment", amount: incrementAmount)
 
             // Get new value
-            let newValue: Int? = try await memcachedConnection.get("increment")
+            let newValue: Int? = try await memcacheConnection.get("increment")
 
             // Check if new value is equal to initial value plus increment amount
             XCTAssertEqual(newValue, initialValue + incrementAmount, "Incremented value is incorrect")
@@ -484,21 +484,21 @@ final class MemcachedIntegrationTest: XCTestCase {
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let memcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await memcachedConnection.run() }
+            group.addTask { try await memcacheConnection.run() }
 
             // Set key and initial value
             let initialValue = 100
-            try await memcachedConnection.set("decrement", value: initialValue)
+            try await memcacheConnection.set("decrement", value: initialValue)
 
             // Increment value
             let decrementAmount = 10
-            try await memcachedConnection.decrement("decrement", amount: decrementAmount)
+            try await memcacheConnection.decrement("decrement", amount: decrementAmount)
 
             // Get new value
-            let newValue: Int? = try await memcachedConnection.get("decrement")
+            let newValue: Int? = try await memcacheConnection.get("decrement")
 
             // Check if new value is equal to initial value plus increment amount
             XCTAssertEqual(newValue, initialValue - decrementAmount, "Incremented value is incorrect")
@@ -507,30 +507,30 @@ final class MemcachedIntegrationTest: XCTestCase {
         }
     }
 
-    func testMemcachedConnectionWithUInt() async throws {
+    func testMemcacheConnectionWithUInt() async throws {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
             XCTAssertNoThrow(try! group.syncShutdownGracefully())
         }
-        let MemcachedConnection = MemcachedConnection(host: "memcached", port: 11211, eventLoopGroup: group)
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: group)
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask { try await MemcachedConnection.run() }
+            group.addTask { try await memcacheConnection.run() }
 
             // Set UInt32 value for key
             let setUInt32Value: UInt32 = 1_234_567_890
-            try await MemcachedConnection.set("UInt32Key", value: setUInt32Value)
+            try await memcacheConnection.set("UInt32Key", value: setUInt32Value)
 
             // Get value for UInt32 key
-            let getUInt32Value: UInt32? = try await MemcachedConnection.get("UInt32Key")
+            let getUInt32Value: UInt32? = try await memcacheConnection.get("UInt32Key")
             XCTAssertEqual(getUInt32Value, setUInt32Value, "Received UInt32 value should be the same as sent")
 
             // Set UInt64 value for key
             let setUInt64Value: UInt64 = 12_345_678_901_234_567_890
-            let _ = try await MemcachedConnection.set("UInt64Key", value: setUInt64Value)
+            let _ = try await memcacheConnection.set("UInt64Key", value: setUInt64Value)
 
             // Get value for UInt64 key
-            let getUInt64Value: UInt64? = try await MemcachedConnection.get("UInt64Key")
+            let getUInt64Value: UInt64? = try await memcacheConnection.get("UInt64Key")
             XCTAssertEqual(getUInt64Value, setUInt64Value, "Received UInt64 value should be the same as sent")
 
             group.cancelAll()

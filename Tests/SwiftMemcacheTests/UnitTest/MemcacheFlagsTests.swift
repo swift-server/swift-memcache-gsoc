@@ -12,12 +12,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-@testable import SwiftMemcache
+@testable import Memcache
 import XCTest
 
-final class MemcachedFlagsTests: XCTestCase {
+final class MemcacheFlagsTests: XCTestCase {
     func testVFlag() {
-        var flags = MemcachedFlags()
+        var flags = MemcacheFlags()
         flags.shouldReturnValue = true
         if let shouldReturnValue = flags.shouldReturnValue {
             XCTAssertTrue(shouldReturnValue)
@@ -27,7 +27,7 @@ final class MemcachedFlagsTests: XCTestCase {
     }
 
     func testTTLFlag() {
-        var flags = MemcachedFlags()
+        var flags = MemcacheFlags()
         let now = ContinuousClock.Instant.now
         let expirationTime = now.advanced(by: .seconds(60))
         flags.timeToLive = .expiresAt(expirationTime)
@@ -39,7 +39,7 @@ final class MemcachedFlagsTests: XCTestCase {
     }
 
     func testStorageModeAdd() {
-        var flags = MemcachedFlags()
+        var flags = MemcacheFlags()
         flags.storageMode = .add
         if case .add? = flags.storageMode {
             XCTAssertTrue(true)
@@ -49,7 +49,7 @@ final class MemcachedFlagsTests: XCTestCase {
     }
 
     func testStorageModeAppend() {
-        var flags = MemcachedFlags()
+        var flags = MemcacheFlags()
         flags.storageMode = .append
         if case .append? = flags.storageMode {
             XCTAssertTrue(true)
@@ -59,7 +59,7 @@ final class MemcachedFlagsTests: XCTestCase {
     }
 
     func testStorageModePrepend() {
-        var flags = MemcachedFlags()
+        var flags = MemcacheFlags()
         flags.storageMode = .prepend
         if case .prepend? = flags.storageMode {
             XCTAssertTrue(true)
@@ -69,7 +69,7 @@ final class MemcachedFlagsTests: XCTestCase {
     }
 
     func testStorageModeReplace() {
-        var flags = MemcachedFlags()
+        var flags = MemcacheFlags()
         flags.storageMode = .replace
         if case .replace? = flags.storageMode {
             XCTAssertTrue(true)

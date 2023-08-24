@@ -12,20 +12,20 @@
 //
 //===----------------------------------------------------------------------===//
 
+@testable import Memcache
 import NIOCore
 import NIOEmbedded
-@testable import SwiftMemcache
 import XCTest
 
-final class MemcachedResponseDecoderTests: XCTestCase {
-    var decoder: MemcachedResponseDecoder!
+final class MemcacheResponseDecoderTests: XCTestCase {
+    var decoder: MemcacheResponseDecoder!
 
     override func setUp() {
         super.setUp()
-        self.decoder = MemcachedResponseDecoder()
+        self.decoder = MemcacheResponseDecoder()
     }
 
-    func makeMemcachedResponseByteBuffer(from response: MemcachedResponse) -> ByteBuffer {
+    func makeMemcacheResponseByteBuffer(from response: MemcacheResponse) -> ByteBuffer {
         var buffer = ByteBufferAllocator().buffer(capacity: 8)
         var returnCode: UInt16 = 0
 
@@ -64,9 +64,9 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         return buffer
     }
 
-    func testDecodeResponse(buffer: inout ByteBuffer, expectedReturnCode: MemcachedResponse.ReturnCode) throws {
+    func testDecodeResponse(buffer: inout ByteBuffer, expectedReturnCode: MemcacheResponse.ReturnCode) throws {
         // Pass our response through the decoder
-        var output: MemcachedResponse? = nil
+        var output: MemcacheResponse? = nil
         do {
             output = try self.decoder.decode(buffer: &buffer)
         } catch {
@@ -81,32 +81,32 @@ final class MemcachedResponseDecoderTests: XCTestCase {
     }
 
     func testDecodeStoredResponse() throws {
-        let storedResponse = MemcachedResponse(returnCode: .HD, dataLength: nil)
-        var buffer = self.makeMemcachedResponseByteBuffer(from: storedResponse)
+        let storedResponse = MemcacheResponse(returnCode: .HD, dataLength: nil)
+        var buffer = self.makeMemcacheResponseByteBuffer(from: storedResponse)
         try self.testDecodeResponse(buffer: &buffer, expectedReturnCode: .HD)
     }
 
     func testDecodeNotStoredResponse() throws {
-        let notStoredResponse = MemcachedResponse(returnCode: .NS, dataLength: nil)
-        var buffer = self.makeMemcachedResponseByteBuffer(from: notStoredResponse)
+        let notStoredResponse = MemcacheResponse(returnCode: .NS, dataLength: nil)
+        var buffer = self.makeMemcacheResponseByteBuffer(from: notStoredResponse)
         try self.testDecodeResponse(buffer: &buffer, expectedReturnCode: .NS)
     }
 
     func testDecodeExistResponse() throws {
-        let existResponse = MemcachedResponse(returnCode: .EX, dataLength: nil)
-        var buffer = self.makeMemcachedResponseByteBuffer(from: existResponse)
+        let existResponse = MemcacheResponse(returnCode: .EX, dataLength: nil)
+        var buffer = self.makeMemcacheResponseByteBuffer(from: existResponse)
         try self.testDecodeResponse(buffer: &buffer, expectedReturnCode: .EX)
     }
 
     func testDecodeNotFoundResponse() throws {
-        let notFoundResponse = MemcachedResponse(returnCode: .NF, dataLength: nil)
-        var buffer = self.makeMemcachedResponseByteBuffer(from: notFoundResponse)
+        let notFoundResponse = MemcacheResponse(returnCode: .NF, dataLength: nil)
+        var buffer = self.makeMemcacheResponseByteBuffer(from: notFoundResponse)
         try self.testDecodeResponse(buffer: &buffer, expectedReturnCode: .NF)
     }
 
     func testDecodeMissResponse() throws {
-        let missResponse = MemcachedResponse(returnCode: .EN, dataLength: nil)
-        var buffer = self.makeMemcachedResponseByteBuffer(from: missResponse)
+        let missResponse = MemcacheResponse(returnCode: .EN, dataLength: nil)
+        var buffer = self.makeMemcacheResponseByteBuffer(from: missResponse)
         try self.testDecodeResponse(buffer: &buffer, expectedReturnCode: .EN)
     }
 
@@ -115,12 +115,12 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         var valueBuffer = allocator.buffer(capacity: 8)
         valueBuffer.writeString("hi")
 
-        let flags = MemcachedFlags()
-        let valueResponse = MemcachedResponse(returnCode: .VA, dataLength: 2, flags: flags, value: valueBuffer)
-        var buffer = self.makeMemcachedResponseByteBuffer(from: valueResponse)
+        let flags = MemcacheFlags()
+        let valueResponse = MemcacheResponse(returnCode: .VA, dataLength: 2, flags: flags, value: valueBuffer)
+        var buffer = self.makeMemcacheResponseByteBuffer(from: valueResponse)
 
         // Pass our response through the decoder
-        var output: MemcachedResponse? = nil
+        var output: MemcacheResponse? = nil
         do {
             output = try self.decoder.decode(buffer: &buffer)
         } catch {
@@ -146,9 +146,9 @@ final class MemcachedResponseDecoderTests: XCTestCase {
         var valueBuffer = allocator.buffer(capacity: 8)
         valueBuffer.writeString("hi")
 
-        let flags = MemcachedFlags()
-        let valueResponse = MemcachedResponse(returnCode: .VA, dataLength: 2, flags: flags, value: valueBuffer)
-        let buffer = self.makeMemcachedResponseByteBuffer(from: valueResponse)
+        let flags = MemcacheFlags()
+        let valueResponse = MemcacheResponse(returnCode: .VA, dataLength: 2, flags: flags, value: valueBuffer)
+        let buffer = self.makeMemcacheResponseByteBuffer(from: valueResponse)
 
         // Split the buffer in two parts, the first of which does not end with "\r\n"
         let splitIndex = buffer.readableBytes - 6

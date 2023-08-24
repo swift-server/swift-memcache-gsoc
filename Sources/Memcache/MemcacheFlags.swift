@@ -12,13 +12,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-/// Struct representing the flags of a Memcached command.
+/// Struct representing the flags of a Memcache command.
 ///
 /// Flags for the 'mg' (meta get) and 'ms' (meta set) commands are represented in this struct.
 /// The 'v' flag for the meta get command dictates whether the item value should be returned in the data block.
 /// The 'T' flag is used for both the meta get and meta set commands to specify the Time-To-Live (TTL) for an item.
 /// The 't' flag for the meta get command indicates whether the Time-To-Live (TTL) for the item should be returned.
-struct MemcachedFlags: Sendable {
+struct MemcacheFlags: Sendable {
     /// Flag 'v' for the 'mg' (meta get) command.
     ///
     /// If true, the item value is returned in the data block.
@@ -45,7 +45,7 @@ struct MemcachedFlags: Sendable {
     init() {}
 }
 
-/// Enum representing the Time-To-Live (TTL) of a Memcached value.
+/// Enum representing the Time-To-Live (TTL) of a Memcache value.
 public enum TimeToLive: Sendable, Equatable, Hashable {
     /// The value should never expire.
     case indefinitely
@@ -53,7 +53,7 @@ public enum TimeToLive: Sendable, Equatable, Hashable {
     case expiresAt(ContinuousClock.Instant)
 }
 
-/// Enum representing the Memcached 'ms' (meta set) command modes (corresponding to the 'M' flag).
+/// Enum representing the Memcache 'ms' (meta set) command modes (corresponding to the 'M' flag).
 enum StorageMode: Equatable, Hashable {
     /// The "add" command. If the item exists, LRU is bumped and NS is returned.
     case add
@@ -65,7 +65,7 @@ enum StorageMode: Equatable, Hashable {
     case replace
 }
 
-/// Enum representing the mode for the 'ma' (meta arithmetic) command in Memcached (corresponding to the 'M' flag).
+/// Enum representing the mode for the 'ma' (meta arithmetic) command in Memcache (corresponding to the 'M' flag).
 enum ArithmeticMode: Equatable, Hashable {
     /// 'increment' command. If applied, it increases the numerical value of the item.
     case increment(Int)
@@ -73,4 +73,4 @@ enum ArithmeticMode: Equatable, Hashable {
     case decrement(Int)
 }
 
-extension MemcachedFlags: Hashable {}
+extension MemcacheFlags: Hashable {}

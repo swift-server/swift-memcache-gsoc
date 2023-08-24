@@ -12,14 +12,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-@testable import SwiftMemcache
+@testable import Memcache
 import XCTest
 
-final class MemcachedErrorTests: XCTestCase {
+final class MemcacheErrorTests: XCTestCase {
     func testInitialization() {
-        let location = MemcachedError.SourceLocation(function: "testFunction", file: "testFile.swift", line: 8)
+        let location = MemcacheError.SourceLocation(function: "testFunction", file: "testFile.swift", line: 8)
 
-        let error = MemcachedError(code: .keyNotFound, message: "Key not available", cause: nil, location: location)
+        let error = MemcacheError(code: .keyNotFound, message: "Key not available", cause: nil, location: location)
 
         XCTAssertEqual(error.code.description, "Key not Found")
         XCTAssertEqual(error.message, "Key not available")
@@ -29,9 +29,9 @@ final class MemcachedErrorTests: XCTestCase {
     }
 
     func testCustomStringConvertible() {
-        let location = MemcachedError.SourceLocation.here()
-        let causeError = MemcachedError(code: .protocolError, message: "No response", cause: nil, location: location)
-        let mainError = MemcachedError(code: .connectionShutdown, message: "Connection lost", cause: causeError, location: location)
+        let location = MemcacheError.SourceLocation.here()
+        let causeError = MemcacheError(code: .protocolError, message: "No response", cause: nil, location: location)
+        let mainError = MemcacheError(code: .connectionShutdown, message: "Connection lost", cause: causeError, location: location)
 
         let description = mainError.description
 
@@ -41,8 +41,8 @@ final class MemcachedErrorTests: XCTestCase {
     }
 
     func testCustomDebugStringConvertible() {
-        let location = MemcachedError.SourceLocation.here()
-        let error = MemcachedError(code: .keyExist, message: "Key already present", cause: nil, location: location)
+        let location = MemcacheError.SourceLocation.here()
+        let error = MemcacheError(code: .keyExist, message: "Key already present", cause: nil, location: location)
 
         let debugDescription = error.debugDescription
 
@@ -51,9 +51,9 @@ final class MemcachedErrorTests: XCTestCase {
     }
 
     func testDetailedDescription() {
-        let location = MemcachedError.SourceLocation.here()
-        let causeError = MemcachedError(code: .protocolError, message: "No response", cause: nil, location: location)
-        let mainError = MemcachedError(code: .connectionShutdown, message: "Connection lost", cause: causeError, location: location)
+        let location = MemcacheError.SourceLocation.here()
+        let causeError = MemcacheError(code: .protocolError, message: "No response", cause: nil, location: location)
+        let mainError = MemcacheError(code: .connectionShutdown, message: "Connection lost", cause: causeError, location: location)
 
         let detailedDesc = mainError.detailedDescription()
 
@@ -67,18 +67,18 @@ final class MemcachedErrorTests: XCTestCase {
     }
 
     func testNestedErrorInitialization() {
-        let location = MemcachedError.SourceLocation.here()
-        let causeError = MemcachedError(code: .keyExist, message: "Key already present", cause: nil, location: location)
-        let mainError = MemcachedError(message: "A nested error", wrapping: causeError)
+        let location = MemcacheError.SourceLocation.here()
+        let causeError = MemcacheError(code: .keyExist, message: "Key already present", cause: nil, location: location)
+        let mainError = MemcacheError(message: "A nested error", wrapping: causeError)
 
         XCTAssertEqual(mainError.message, "A nested error")
 
-        if let unwrappedCause = mainError.cause as? MemcachedError {
+        if let unwrappedCause = mainError.cause as? MemcacheError {
             XCTAssertEqual(unwrappedCause.code, causeError.code)
             XCTAssertEqual(unwrappedCause.message, causeError.message)
             XCTAssertEqual(unwrappedCause.location, causeError.location)
         } else {
-            XCTFail("Expected mainError.cause to be of type MemcachedError")
+            XCTFail("Expected mainError.cause to be of type MemcacheError")
         }
     }
 }

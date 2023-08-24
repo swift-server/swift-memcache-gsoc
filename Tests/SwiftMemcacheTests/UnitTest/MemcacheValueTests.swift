@@ -12,12 +12,12 @@
 //
 //===----------------------------------------------------------------------===//
 
+@testable import Memcache
 import NIOCore
-@testable import SwiftMemcache
 import XCTest
 
-final class MemcachedValueTests: XCTestCase {
-    func testMemcachedValueConformance() {
+final class MemcacheValueTests: XCTestCase {
+    func testMemcacheValueConformance() {
         var buffer = ByteBufferAllocator().buffer(capacity: 0)
 
         // Test for Int
