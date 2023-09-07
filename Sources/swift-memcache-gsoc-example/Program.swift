@@ -16,6 +16,7 @@ import Logging
 import Memcache
 import NIOCore
 import NIOPosix
+import ServiceLifecycle
 
 @main
 struct Program {
@@ -28,10 +29,13 @@ struct Program {
         // Instantiate a new MemcacheConnection actor with host, port, and event loop group
         let memcacheConnection = MemcacheConnection(host: "127.0.0.1", port: 11211, eventLoopGroup: eventLoopGroup)
 
+        // Initialize the service group
+        let serviceGroup = ServiceGroup(services: [memcacheConnection], logger: self.logger)
+
         try await withThrowingTaskGroup(of: Void.self) { group in
             // Add the connection actor's run function to the task group
             // This opens the connection and handles requests until the task is cancelled or the connection is closed
-            group.addTask { try await memcacheConnection.run() }
+            group.addTask { try await serviceGroup.run() }
 
             // Set a value for a key.
             let setValue = "bar"
