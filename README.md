@@ -16,7 +16,7 @@ docker-compose -f docker/docker-compose.yaml run test
 
 ### Memcached Connection API
 
-Our `MemcachedConnection` allows for communicate with a Memcached server. This actor takes care of establishing a connection, creating a request stream and handling asynchronous execution of commands. 
+Our `MemcachedConnection` allows for communicate with a Memcached server. This actor takes care of establishing a connection, creating a request stream and handling asynchronous execution of commands.
 
 Here's an example of how you can use `MemcachedConnection` in a program.
 
@@ -59,10 +59,3 @@ struct Program {
     }
 }
 ```
-
-
-
-
-
-
-
