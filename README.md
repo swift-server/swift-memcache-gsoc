@@ -4,14 +4,6 @@ SwiftMemcache is a Swift Package in development that provides a convenient way t
 
 ## Getting Started
 
-### Docker
-
-We provide a Docker environment for this package. This will automatically start a local Memcached server and run the package tests.
-
-```bash
-docker-compose -f docker/docker-compose.yaml run test
-```
-
 ## Overview
 
 ### Memcached Connection API
@@ -58,4 +50,14 @@ struct Program {
         }
     }
 }
+```
+
+## Contributing
+
+### Docker
+
+We provide a Docker environment for this package. This will automatically start a local Memcached server and run the package tests.
+
+```bash
+docker-compose -f docker/docker-compose.yaml run test
 ```
