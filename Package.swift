@@ -50,7 +50,7 @@ let package = Package(
             dependencies: ["Memcache"]
         ),
         .executableTarget(
-            name: "swift-memcache-gsoc-example",
+            name: "MemcacheExample",
             dependencies: [
                 .target(name: "Memcache"),
             ]
