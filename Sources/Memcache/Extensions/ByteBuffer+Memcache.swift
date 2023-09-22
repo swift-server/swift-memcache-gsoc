@@ -12,7 +12,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Foundation
+#if os(Linux)
+import Glibc
+#else
+import Darwin
+#endif
 import NIOCore
 
 extension ByteBuffer {
@@ -44,15 +48,15 @@ extension ByteBuffer {
 }
 
 extension ByteBuffer {
-    /// Serialize and writes MemcachedFlags to the ByteBuffer.
+    /// Serialize and writes MemcacheFlags to the ByteBuffer.
     ///
-    /// This method runs a loop over the flags contained in a MemcachedFlags instance.
+    /// This method runs a loop over the flags contained in a MemcacheFlags instance.
     /// For each flag that is set to true, its corresponding byte value,
     /// followed by a whitespace character, is added to the ByteBuffer.
     ///
     /// - parameters:
-    ///     - flags: An instance of MemcachedFlags that holds the flags intended to be serialized and written to the ByteBuffer.
-    mutating func writeMemcachedFlags(flags: MemcachedFlags) {
+    ///     - flags: An instance of MemcacheFlags that holds the flags intended to be serialized and written to the ByteBuffer.
+    mutating func writeMemcacheFlags(flags: MemcacheFlags) {
         // Ensure that both storageMode and arithmeticMode aren't set at the same time.
         precondition(!(flags.storageMode != nil && flags.arithmeticMode != nil), "Cannot specify both a storage and arithmetic mode.")
 
@@ -127,9 +131,9 @@ extension ByteBuffer {
 extension ByteBuffer {
     /// Parses flags from this `ByteBuffer`, advancing the reader index accordingly.
     ///
-    /// - returns: A `MemcachedFlags` instance populated with the flags read from the buffer.
-    mutating func readMemcachedFlags() -> MemcachedFlags {
-        let flags = MemcachedFlags()
+    /// - returns: A `MemcacheFlags` instance populated with the flags read from the buffer.
+    mutating func readMemcacheFlags() -> MemcacheFlags {
+        let flags = MemcacheFlags()
         while let nextByte = self.getInteger(at: self.readerIndex, as: UInt8.self) {
             switch nextByte {
             case UInt8.whitespace:

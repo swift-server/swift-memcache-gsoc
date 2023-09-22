@@ -25,8 +25,8 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "SwiftMemcache",
-            targets: ["SwiftMemcache"]
+            name: "Memcache",
+            targets: ["Memcache"]
         ),
     ],
     dependencies: [
@@ -36,7 +36,7 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "SwiftMemcache",
+            name: "Memcache",
             dependencies: [
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
@@ -47,12 +47,12 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftMemcacheTests",
-            dependencies: ["SwiftMemcache"]
+            dependencies: ["Memcache"]
         ),
         .executableTarget(
-            name: "swift-memcache-gsoc-example",
+            name: "MemcacheExample",
             dependencies: [
-                .target(name: "SwiftMemcache"),
+                .target(name: "Memcache"),
             ]
         ),
     ]

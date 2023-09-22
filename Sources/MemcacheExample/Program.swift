@@ -13,10 +13,10 @@
 //===----------------------------------------------------------------------===//
 
 import Logging
+import Memcache
 import NIOCore
 import NIOPosix
 import ServiceLifecycle
-import SwiftMemcache
 
 @main
 struct Program {
@@ -27,7 +27,7 @@ struct Program {
 
     static func main() async throws {
         // Instantiate a new MemcacheConnection actor with host, port, and event loop group
-        let memcacheConnection = MemcachedConnection(host: "127.0.0.1", port: 11211, eventLoopGroup: eventLoopGroup)
+        let memcacheConnection = MemcacheConnection(host: "127.0.0.1", port: 11211, eventLoopGroup: eventLoopGroup)
 
         // Initialize the service group
         let serviceGroup = ServiceGroup(services: [memcacheConnection], logger: self.logger)

@@ -14,7 +14,7 @@
 
 import NIOCore
 
-struct MemcachedResponse {
+struct MemcacheResponse {
     enum ReturnCode {
         case HD
         case NS
@@ -45,6 +45,6 @@ struct MemcachedResponse {
 
     var returnCode: ReturnCode
     var dataLength: UInt64?
-    var flags: MemcachedFlags?
+    var flags: MemcacheFlags?
     var value: ByteBuffer?
 }

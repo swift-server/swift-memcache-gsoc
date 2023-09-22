@@ -13,7 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 /// An error thrown as a result of interaction with memcache
-public struct MemcachedError: Error, @unchecked Sendable {
+public struct MemcacheError: Error, @unchecked Sendable {
     // Note: @unchecked because we use a backing class for storage.
 
     private var storage: Storage
@@ -92,13 +92,13 @@ public struct MemcachedError: Error, @unchecked Sendable {
         self.storage = Storage(code: code, message: message, cause: cause, location: location)
     }
 
-    /// Creates a ``MemcachedError`` by wrapping the given `cause` and its location and code.
-    internal init(message: String, wrapping cause: MemcachedError) {
+    /// Creates a ``MemcacheError`` by wrapping the given `cause` and its location and code.
+    internal init(message: String, wrapping cause: MemcacheError) {
         self.init(code: cause.code, message: message, cause: cause, location: cause.location)
     }
 }
 
-extension MemcachedError: CustomStringConvertible {
+extension MemcacheError: CustomStringConvertible {
     public var description: String {
         if let cause = self.cause {
             return "\(self.code): \(self.message) (\(cause))"
@@ -108,7 +108,7 @@ extension MemcachedError: CustomStringConvertible {
     }
 }
 
-extension MemcachedError: CustomDebugStringConvertible {
+extension MemcacheError: CustomDebugStringConvertible {
     public var debugDescription: String {
         if let cause = self.cause {
             return "\(String(reflecting: self.code)): \(String(reflecting: self.message)) (\(String(reflecting: cause)))"
@@ -118,16 +118,16 @@ extension MemcachedError: CustomDebugStringConvertible {
     }
 }
 
-extension MemcachedError {
+extension MemcacheError {
     private func detailedDescriptionLines() -> [String] {
         // Build up a tree-like description of the error. This allows nested causes to be formatted
-        // correctly, especially when they are also MemcachedError.
+        // correctly, especially when they are also MemcacheError.
         var lines = [
-            "MemcachedError: \(self.code)",
+            "MemcacheError: \(self.code)",
             "├─ Reason: \(self.message)",
         ]
 
-        if let error = self.cause as? MemcachedError {
+        if let error = self.cause as? MemcacheError {
             lines.append("├─ Cause:")
             let causeLines = error.detailedDescriptionLines()
             // We know this will never be empty.
@@ -150,13 +150,13 @@ extension MemcachedError {
     }
 }
 
-extension MemcachedError {
+extension MemcacheError {
     /// A high level indication of the kind of error being thrown.
     public struct Code: Hashable, Sendable, CustomStringConvertible {
         private enum Wrapped: Hashable, Sendable, CustomStringConvertible {
             /// Indicates that the connection has shut down.
             case connectionShutdown
-            /// Indicates that there was a violation or inconsistency in the expected Memcached protocol behavior.
+            /// Indicates that there was a violation or inconsistency in the expected Memcache protocol behavior.
             case protocolError
             /// Indicates that the key was not found.
             case keyNotFound

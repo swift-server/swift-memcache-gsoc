@@ -14,8 +14,8 @@
 
 import NIOCore
 
-/// Protocol defining the requirements for a type that can be converted to a ByteBuffer for transmission to Memcached.
-public protocol MemcachedValue {
+/// Protocol defining the requirements for a type that can be converted to a ByteBuffer for transmission to Memcache.
+public protocol MemcacheValue {
     /// Writes the value to a ByteBuffer.
     ///
     /// - Parameter buffer: The ByteBuffer to which the value should be written.
@@ -27,8 +27,8 @@ public protocol MemcachedValue {
     static func readFromBuffer(_ buffer: inout ByteBuffer) -> Self?
 }
 
-/// Extension for FixedWidthInteger types to conform to MemcachedValue.
-extension MemcachedValue where Self: FixedWidthInteger {
+/// Extension for FixedWidthInteger types to conform to MemcacheValue.
+extension MemcacheValue where Self: FixedWidthInteger {
     /// Writes the integer to a ByteBuffer.
     ///
     /// - Parameter buffer: The ByteBuffer to which the integer should be written.
@@ -44,8 +44,8 @@ extension MemcachedValue where Self: FixedWidthInteger {
     }
 }
 
-/// Extension for StringProtocol types to conform to MemcachedValue.
-extension MemcachedValue where Self: StringProtocol {
+/// Extension for StringProtocol types to conform to MemcacheValue.
+extension MemcacheValue where Self: StringProtocol {
     /// Writes the string to a ByteBuffer.
     ///
     /// - Parameter buffer: The ByteBuffer to which the string should be written.
@@ -61,15 +61,15 @@ extension MemcachedValue where Self: StringProtocol {
     }
 }
 
-/// MemcachedValue conformance to several standard Swift types.
-extension Int: MemcachedValue {}
-extension Int8: MemcachedValue {}
-extension Int16: MemcachedValue {}
-extension Int32: MemcachedValue {}
-extension Int64: MemcachedValue {}
-extension UInt: MemcachedValue {}
-extension UInt8: MemcachedValue {}
-extension UInt16: MemcachedValue {}
-extension UInt32: MemcachedValue {}
-extension UInt64: MemcachedValue {}
-extension String: MemcachedValue {}
+/// MemcacheValue conformance to several standard Swift types.
+extension Int: MemcacheValue {}
+extension Int8: MemcacheValue {}
+extension Int16: MemcacheValue {}
+extension Int32: MemcacheValue {}
+extension Int64: MemcacheValue {}
+extension UInt: MemcacheValue {}
+extension UInt8: MemcacheValue {}
+extension UInt16: MemcacheValue {}
+extension UInt32: MemcacheValue {}
+extension UInt64: MemcacheValue {}
+extension String: MemcacheValue {}
