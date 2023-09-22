@@ -6,9 +6,9 @@ SwiftMemcache is a Swift Package in development that provides a convenient way t
 
 ## Overview
 
-### Memcached Connection API
+### Memcache Connection API
 
-Our `MemcachedConnection` allows for communicate with a Memcached server. This actor takes care of establishing a connection, creating a request stream and handling asynchronous execution of commands.
+Our `MemcacheConnection` allows for communicate with a Memcached server. This actor takes care of establishing a connection, creating a request stream and handling asynchronous execution of commands.
 
 Here's an example of how you can use `MemcachedConnection` in a program.
 
