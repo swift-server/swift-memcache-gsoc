@@ -32,7 +32,6 @@ let benchmarks = {
             }
 
             group.cancelAll()
-
         }
     }
 }

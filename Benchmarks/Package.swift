@@ -30,7 +30,8 @@ let package = Package(
             name: "Benchmarks"),
         .testTarget(
             name: "BenchmarksTests",
-            dependencies: ["Benchmarks"]),
+            dependencies: ["Benchmarks"]
+        ),
     ]
 )
 // Benchmark of MemcacheBenchmarks
@@ -45,7 +46,7 @@ package.targets += [
         ],
         path: "Benchmarks/MemcacheBenchmarks",
         plugins: [
-            .plugin(name: "BenchmarkPlugin", package: "package-benchmark")
+            .plugin(name: "BenchmarkPlugin", package: "package-benchmark"),
         ]
     ),
 ]
