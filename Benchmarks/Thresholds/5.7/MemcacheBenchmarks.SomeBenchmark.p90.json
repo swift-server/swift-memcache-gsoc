@@ -1,7 +1,7 @@
 {
   "cpuTotal" : 0,
   "mallocCountTotal" : 0,
-  "peakMemoryResident" : 21987328,
-  "throughput" : 3534847,
-  "wallClock" : 387
+  "peakMemoryResident" : 22409216,
+  "throughput" : 3391487,
+  "wallClock" : 535
 }

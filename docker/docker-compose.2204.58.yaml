@@ -18,3 +18,8 @@ services:
 
   shell:
     image: swift-memcache-gsoc:22.04-5.8
+
+  update-benchmark-baseline:
+    image: swift-memcache-gsoc:22.04-5.8
+    environment:
+      - SWIFT_VERSION=5.8
