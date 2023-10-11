@@ -1,0 +1,6 @@
+{
+  "allocatedResidentMemory" : 169476095,
+  "mallocCountLarge" : 3,
+  "mallocCountTotal" : 62,
+  "memoryLeaked" : 528895
+}
