@@ -156,7 +156,7 @@ EOF
     cd "$here/.."
     {
         find . \
-            \( \! -path './.build/*' -a \
+            \( \! -path '*/.build/*' -a \
             \( "${matching_files[@]}" \) -a \
             \( \! \( "${exceptions[@]}" \) \) \)
 
