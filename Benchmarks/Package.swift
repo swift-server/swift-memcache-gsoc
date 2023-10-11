@@ -21,7 +21,7 @@ let package = Package(
         .macOS(.v13),
     ],
     dependencies: [
-        .package(path: "../"),
+        .package(name: "swift-memcache-gsoc", path: "../"),
         .package(url: "https://github.com/ordo-one/package-benchmark.git", from: "1.11.1"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.56.0"),
     ],
@@ -38,6 +38,7 @@ package.targets += [
     .executableTarget(
         name: "MemcacheBenchmarks",
         dependencies: [
+            .product(name: "Memcache", package: "swift-memcache-gsoc"),
             .product(name: "Benchmark", package: "package-benchmark"),
             .product(name: "NIOCore", package: "swift-nio"),
             .product(name: "NIOPosix", package: "swift-nio"),

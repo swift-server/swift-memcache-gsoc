@@ -42,4 +42,7 @@ services:
 
   update-benchmark-baseline:
     <<: *common
+    depends_on:
+        - runtime-setup
+        - memcached
     command: /bin/bash -xcl "cd Benchmarks && swift package --disable-sandbox --scratch-path .build/$${SWIFT_VERSION-}/ --allow-writing-to-package-directory benchmark --format metricP90AbsoluteThresholds --path Thresholds/$${SWIFT_VERSION-}/"
