@@ -6,8 +6,10 @@ services:
   
   memcached:
     image: memcached:latest
+    networks:
+      - memcached
     ports:
-        - "11211:11211"
+        - 11211
   
   runtime-setup:
     image: swift-memcache-gsoc:default
@@ -33,6 +35,8 @@ services:
         - runtime-setup
         - memcached
     command: /bin/bash -xcl "swift $${SWIFT_TEST_VERB-test} $${WARN_AS_ERROR_ARG-} $${SANITIZER_ARG-} $${IMPORT_CHECK_ARG-} && cd Benchmarks && swift package benchmark baseline check --check-absolute-path Thresholds/$${SWIFT_VERSION-}/"
+    networks:
+      - memcached
 
   # util
 
@@ -46,3 +50,8 @@ services:
         - runtime-setup
         - memcached
     command: /bin/bash -xcl "cd Benchmarks && swift package --disable-sandbox --scratch-path .build/$${SWIFT_VERSION-}/ --allow-writing-to-package-directory benchmark --format metricP90AbsoluteThresholds --path Thresholds/$${SWIFT_VERSION-}/"
+
+# dedicated network
+
+networks:
+  memcached:
