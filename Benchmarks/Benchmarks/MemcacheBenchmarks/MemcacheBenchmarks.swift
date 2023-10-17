@@ -32,7 +32,7 @@ let benchmarks = {
             scalingFactor: .mega
         )
     ) { benchmark in
-        try await runSetRequest(iterations: benchmark.scaledIterations.lowerBound, eventLoop: eventLoop)
+        try await runSetRequest(iterations: benchmark.scaledIterations.upperBound, eventLoop: eventLoop)
     }
 
     Benchmark(
@@ -43,7 +43,7 @@ let benchmarks = {
             scalingFactor: .mega
         )
     ) { benchmark in
-        try await runSetWithTTLRequest(iterations: benchmark.scaledIterations.lowerBound, eventLoop: eventLoop)
+        try await runSetWithTTLRequest(iterations: benchmark.scaledIterations.upperBound, eventLoop: eventLoop)
     }
 
     Benchmark(
@@ -54,7 +54,7 @@ let benchmarks = {
             scalingFactor: .mega
         )
     ) { benchmark in
-        try await runDeleteRequest(iterations: benchmark.scaledIterations.lowerBound, eventLoop: eventLoop)
+        try await runDeleteRequest(iterations: benchmark.scaledIterations.upperBound, eventLoop: eventLoop)
     }
 
     Benchmark(
@@ -65,7 +65,7 @@ let benchmarks = {
             scalingFactor: .mega
         )
     ) { benchmark in
-        try await runIncrementRequest(iterations: benchmark.scaledIterations.lowerBound, eventLoop: eventLoop)
+        try await runIncrementRequest(iterations: benchmark.scaledIterations.upperBound, eventLoop: eventLoop)
     }
 
     Benchmark(
@@ -76,6 +76,6 @@ let benchmarks = {
             scalingFactor: .mega
         )
     ) { benchmark in
-        try await runDecrementRequest(iterations: benchmark.scaledIterations.lowerBound, eventLoop: eventLoop)
+        try await runDecrementRequest(iterations: benchmark.scaledIterations.upperBound, eventLoop: eventLoop)
     }
 }
