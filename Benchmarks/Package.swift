@@ -26,27 +26,18 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.56.0"),
     ],
     targets: [
-        .target(
-            name: "Benchmarks"),
-        .testTarget(
-            name: "BenchmarksTests",
-            dependencies: ["Benchmarks"]
+        .executableTarget(
+            name: "MemcacheBenchmarks",
+            dependencies: [
+                .product(name: "Memcache", package: "swift-memcache-gsoc"),
+                .product(name: "Benchmark", package: "package-benchmark"),
+                .product(name: "NIOCore", package: "swift-nio"),
+                .product(name: "NIOPosix", package: "swift-nio"),
+            ],
+            path: "Benchmarks/MemcacheBenchmarks",
+            plugins: [
+                .plugin(name: "BenchmarkPlugin", package: "package-benchmark"),
+            ]
         ),
     ]
 )
-// Benchmark of MemcacheBenchmarks
-package.targets += [
-    .executableTarget(
-        name: "MemcacheBenchmarks",
-        dependencies: [
-            .product(name: "Memcache", package: "swift-memcache-gsoc"),
-            .product(name: "Benchmark", package: "package-benchmark"),
-            .product(name: "NIOCore", package: "swift-nio"),
-            .product(name: "NIOPosix", package: "swift-nio"),
-        ],
-        path: "Benchmarks/MemcacheBenchmarks",
-        plugins: [
-            .plugin(name: "BenchmarkPlugin", package: "package-benchmark"),
-        ]
-    ),
-]
