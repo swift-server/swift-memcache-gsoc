@@ -70,6 +70,6 @@ let benchmarks = {
             timeUnits: .milliseconds
         )
     ) { benchmark in
-        try await runDecrementRequest(iterations: benchmark.scaledIterations.upperBound, eventLoopGroup: eventLoopGroup.next())
+        try await runDecrementRequest(iterations: benchmark.scaledIterations.upperBound, eventLoopGroup: eventLoopGroup)
     }
 }
