@@ -17,7 +17,7 @@ import Memcache
 import NIOCore
 import NIOPosix
 
-private let eventLoop = MultiThreadedEventLoopGroup.singleton.next()
+private let eventLoopGroup = MultiThreadedEventLoopGroup.singleton.next()
 
 let benchmarks = {
     let defaultMetrics: [BenchmarkMetric] = [
@@ -28,54 +28,48 @@ let benchmarks = {
         "Set Request",
         configuration: .init(
             metrics: defaultMetrics,
-            timeUnits: .milliseconds,
-            scalingFactor: .mega
+            timeUnits: .milliseconds
         )
     ) { benchmark in
-        try await runSetRequest(iterations: benchmark.scaledIterations.upperBound, eventLoop: eventLoop)
+        try await runSetRequest(iterations: benchmark.scaledIterations.upperBound, eventLoopGroup: eventLoopGroup)
     }
 
     Benchmark(
         "Set with TTL Request",
         configuration: .init(
             metrics: defaultMetrics,
-            timeUnits: .milliseconds,
-            scalingFactor: .mega
+            timeUnits: .milliseconds
         )
     ) { benchmark in
-        try await runSetWithTTLRequest(iterations: benchmark.scaledIterations.upperBound, eventLoop: eventLoop)
+        try await runSetWithTTLRequest(iterations: benchmark.scaledIterations.upperBound, eventLoopGroup: eventLoopGroup)
     }
-
     Benchmark(
         "Delete Request",
         configuration: .init(
             metrics: defaultMetrics,
-            timeUnits: .milliseconds,
-            scalingFactor: .mega
+            timeUnits: .milliseconds
         )
     ) { benchmark in
-        try await runDeleteRequest(iterations: benchmark.scaledIterations.upperBound, eventLoop: eventLoop)
+        try await runDeleteRequest(iterations: benchmark.scaledIterations.upperBound, eventLoopGroup: eventLoopGroup)
     }
 
     Benchmark(
         "Increment Request",
         configuration: .init(
             metrics: defaultMetrics,
-            timeUnits: .milliseconds,
-            scalingFactor: .mega
+            timeUnits: .milliseconds
         )
     ) { benchmark in
-        try await runIncrementRequest(iterations: benchmark.scaledIterations.upperBound, eventLoop: eventLoop)
+        try await runIncrementRequest(iterations: benchmark.scaledIterations.upperBound, eventLoopGroup: eventLoopGroup)
     }
 
     Benchmark(
         "Decrement Request",
         configuration: .init(
             metrics: defaultMetrics,
-            timeUnits: .milliseconds,
-            scalingFactor: .mega
+            timeUnits: .milliseconds
         )
     ) { benchmark in
-        try await runDecrementRequest(iterations: benchmark.scaledIterations.upperBound, eventLoop: eventLoop)
+        try await runDecrementRequest(iterations: benchmark.scaledIterations.upperBound, eventLoopGroup: eventLoopGroup.next())
     }
 }

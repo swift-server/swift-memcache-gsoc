@@ -17,10 +17,9 @@ import Memcache
 import NIOCore
 import NIOPosix
 
-func runSetRequest(iterations: Int, eventLoop: EventLoop) async throws {
+func runSetRequest(iterations: Int, eventLoopGroup: EventLoopGroup) async throws {
     try await withThrowingTaskGroup(of: Void.self) { group in
-        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: eventLoop)
-
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: eventLoopGroup)
         group.addTask { try await memcacheConnection.run() }
 
         let setValue = "bar"
@@ -28,15 +27,14 @@ func runSetRequest(iterations: Int, eventLoop: EventLoop) async throws {
         for _ in 0..<iterations {
             try await memcacheConnection.set("foo", value: setValue)
         }
-
         group.cancelAll()
     }
 }
 
-func runSetWithTTLRequest(iterations: Int, eventLoop: EventLoop) async throws {
+func runSetWithTTLRequest(iterations: Int, eventLoopGroup: EventLoopGroup) async throws {
     try await withThrowingTaskGroup(of: Void.self) { group in
-        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: eventLoop)
 
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: eventLoopGroup)
         group.addTask { try await memcacheConnection.run() }
 
         let setValue = "foo"
@@ -47,53 +45,56 @@ func runSetWithTTLRequest(iterations: Int, eventLoop: EventLoop) async throws {
         for _ in 0..<iterations {
             try await memcacheConnection.set("bar", value: setValue, timeToLive: timeToLive)
         }
-
         group.cancelAll()
     }
 }
 
-func runDeleteRequest(iterations: Int, eventLoop: EventLoop) async throws {
+func runDeleteRequest(iterations: Int, eventLoopGroup: EventLoopGroup) async throws {
     try await withThrowingTaskGroup(of: Void.self) { group in
-        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: eventLoop)
 
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: eventLoopGroup)
         group.addTask { try await memcacheConnection.run() }
+
         let setValue = "foo"
         try await memcacheConnection.set("bar", value: setValue)
 
         for _ in 0..<iterations {
             try await memcacheConnection.delete("bar")
         }
-
         group.cancelAll()
     }
 }
 
-func runIncrementRequest(iterations: Int, eventLoop: EventLoop) async throws {
+func runIncrementRequest(iterations: Int, eventLoopGroup: EventLoopGroup) async throws {
     try await withThrowingTaskGroup(of: Void.self) { group in
-        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: eventLoop)
 
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: eventLoopGroup)
         group.addTask { try await memcacheConnection.run() }
-        try await memcacheConnection.set("count", value: "0")
 
+        let initialValue = 1
+        try await memcacheConnection.set("increment", value: initialValue)
+
+        let incrementAmount = 100
         for _ in 0..<iterations {
-            try await memcacheConnection.increment("count", amount: 1)
+            try await memcacheConnection.increment("increment", amount: incrementAmount)
         }
-
         group.cancelAll()
     }
 }
 
-func runDecrementRequest(iterations: Int, eventLoop: EventLoop) async throws {
+func runDecrementRequest(iterations: Int, eventLoopGroup: EventLoopGroup) async throws {
     try await withThrowingTaskGroup(of: Void.self) { group in
-        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: eventLoop)
 
+        let memcacheConnection = MemcacheConnection(host: "memcached", port: 11211, eventLoopGroup: eventLoopGroup)
         group.addTask { try await memcacheConnection.run() }
-        try await memcacheConnection.set("count", value: "1000")
 
+        let initialValue = 100
+        try await memcacheConnection.set("decrement", value: initialValue)
+
+        let decrementAmount = 10
         for _ in 0..<iterations {
-            try await memcacheConnection.decrement("count", amount: 1)
+            try await memcacheConnection.decrement("decrement", amount: decrementAmount)
         }
-
         group.cancelAll()
     }
 }
