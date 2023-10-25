@@ -21,3 +21,6 @@ ARG swiftformat_version=0.51.8
 RUN git clone --branch $swiftformat_version --depth 1 https://github.com/nicklockwood/SwiftFormat $HOME/.tools/swift-format
 RUN cd $HOME/.tools/swift-format && swift build -c release
 RUN ln -s $HOME/.tools/swift-format/.build/release/swiftformat $HOME/.tools/swiftformat
+
+# install jemalloc for running allocation benchmarks
+RUN apt-get update & apt-get install -y libjemalloc-dev
