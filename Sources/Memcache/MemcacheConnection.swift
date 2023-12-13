@@ -13,6 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 import _ConnectionPoolModule
+import Atomics
 import NIOCore
 import NIOPosix
 import ServiceLifecycle
@@ -23,6 +24,7 @@ import ServiceLifecycle
 public actor MemcacheConnection: Service, PooledConnection {
     public typealias ID = Int
     public let id: ID
+    private static var nextID: ManagedAtomic<Int> = ManagedAtomic(0)
 
     private let closePromise: EventLoopPromise<Void>
 
@@ -73,10 +75,10 @@ public actor MemcacheConnection: Service, PooledConnection {
     ///   - port: The port number of the Memcache server.
     ///   - eventLoopGroup: The event loop group to use for this connection.
     ///   - id: The unique identifier for the connection (optional).
-    public init(host: String, port: Int, id: ID = 1, eventLoopGroup: EventLoopGroup) {
+    public init(host: String, port: Int, id: ID? = nil, eventLoopGroup: EventLoopGroup) {
         self.host = host
         self.port = port
-        self.id = id
+        self.id = id ?? MemcacheConnection.nextID.wrappingIncrementThenLoad(ordering: .sequentiallyConsistent)
         let (stream, continuation) = AsyncStream<StreamElement>.makeStream()
         let bufferAllocator = ByteBufferAllocator()
         self.closePromise = eventLoopGroup.next().makePromise(of: Void.self)
