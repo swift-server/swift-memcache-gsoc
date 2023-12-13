@@ -20,8 +20,6 @@ import ServiceLifecycle
 /// An actor to create a connection to a Memcache server.
 ///
 /// This actor can be used to send commands to the server.
-@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
-@_spi(ConnectionPool)
 public actor MemcacheConnection: Service, PooledConnection {
     public typealias ID = Int
     public let id: ID
@@ -95,10 +93,16 @@ public actor MemcacheConnection: Service, PooledConnection {
 
     /// Closes the connection. This method is responsible for properly shutting down
     /// and cleaning up resources associated with the connection.
-    public func close() {
+    public nonisolated func close() {
+        Task {
+            await self.closeConnection()
+        }
+    }
+
+    private func closeConnection() async {
         switch self.state {
-        case .running(_, let asyncChannel, _, _):
-            asyncChannel.channel.close().cascade(to: self.closePromise)
+        case .running(_, let channel, _, _):
+            channel.channel.close().cascade(to: self.closePromise)
         default:
             self.closePromise.succeed(())
         }
@@ -107,13 +111,15 @@ public actor MemcacheConnection: Service, PooledConnection {
 
     /// Registers a closure to be called when the connection is closed.
     /// This is useful for performing cleanup or notification tasks.
-    public func onClose(_ closure: @escaping ((any Error)?) -> Void) {
-        self.closeFuture.whenComplete { result in
-            switch result {
-            case .success:
-                closure(nil)
-            case .failure(let error):
-                closure(error)
+    public nonisolated func onClose(_ closure: @escaping ((any Error)?) -> Void) {
+        Task {
+            await self.closeFuture.whenComplete { result in
+                switch result {
+                case .success:
+                    closure(nil)
+                case .failure(let error):
+                    closure(error)
+                }
             }
         }
     }

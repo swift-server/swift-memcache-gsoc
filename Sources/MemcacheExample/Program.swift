@@ -19,9 +19,7 @@ import NIOPosix
 import ServiceLifecycle
 
 @main
-@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
-@_spi(ConnectionPool)
-public struct Program {
+struct Program {
     // Use the shared singleton instance of MultiThreadedEventLoopGroup
     static let eventLoopGroup = MultiThreadedEventLoopGroup.singleton
     // Initialize the logger
