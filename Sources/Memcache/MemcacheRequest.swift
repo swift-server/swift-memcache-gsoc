@@ -13,25 +13,36 @@
 //===----------------------------------------------------------------------===//
 
 import NIOCore
-enum MemcacheRequest: Sendable {
-    struct SetCommand: Sendable {
-        let key: String
-        var value: ByteBuffer
-        var flags: MemcacheFlags?
+public enum MemcacheRequest: Sendable {
+    public struct SetCommand: Sendable {
+        public let key: String
+        public var value: ByteBuffer
+        public var flags: MemcacheFlags?
+
+        public init(key: String, value: ByteBuffer, flags: MemcacheFlags? = nil) {
+            self.key = key
+            self.value = value
+            self.flags = flags
+        }
     }
 
-    struct GetCommand: Sendable {
-        let key: String
-        var flags: MemcacheFlags
+    public struct GetCommand: Sendable {
+        public let key: String
+        public var flags: MemcacheFlags
+
+        public init(key: String, flags: MemcacheFlags) {
+            self.key = key
+            self.flags = flags
+        }
     }
 
-    struct DeleteCommand: Sendable {
-        let key: String
+    public struct DeleteCommand: Sendable {
+        public let key: String
     }
 
-    struct ArithmeticCommand: Sendable {
-        let key: String
-        var flags: MemcacheFlags
+    public struct ArithmeticCommand: Sendable {
+        public let key: String
+        public var flags: MemcacheFlags
     }
 
     case set(SetCommand)

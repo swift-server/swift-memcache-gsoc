@@ -48,8 +48,8 @@ import NIOPosix
 ///
 /// For usage examples beyond basic syntax, please see the wiki:
 /// https://github.com/memcached/memcached/wiki/MetaCommands
-struct MemcacheResponseDecoder: NIOSingleStepByteToMessageDecoder {
-    typealias InboundOut = MemcacheResponse
+public struct MemcacheResponseDecoder: NIOSingleStepByteToMessageDecoder {
+    public typealias InboundOut = MemcacheResponse
 
     /// Describes the errors that can occur during the decoding process.
     enum MemcacheDecoderError: Error {
@@ -91,7 +91,9 @@ struct MemcacheResponseDecoder: NIOSingleStepByteToMessageDecoder {
     /// The next step in decoding.
     var nextStep: NextStep = .returnCode
 
-    mutating func decode(buffer: inout ByteBuffer) throws -> InboundOut? {
+    public init() {}
+
+    public mutating func decode(buffer: inout ByteBuffer) throws -> InboundOut? {
         while true {
             switch try self.next(buffer: &buffer) {
             case .returnDecodedResponse(let response):
@@ -190,7 +192,7 @@ struct MemcacheResponseDecoder: NIOSingleStepByteToMessageDecoder {
         }
     }
 
-    mutating func decodeLast(buffer: inout ByteBuffer, seenEOF: Bool) throws -> MemcacheResponse? {
+    public mutating func decodeLast(buffer: inout ByteBuffer, seenEOF: Bool) throws -> MemcacheResponse? {
         // Try to decode what is left in the buffer.
         if let output = try self.decode(buffer: &buffer) {
             return output

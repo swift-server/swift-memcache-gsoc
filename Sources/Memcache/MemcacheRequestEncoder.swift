@@ -15,10 +15,12 @@
 import NIOCore
 import NIOPosix
 
-struct MemcacheRequestEncoder: MessageToByteEncoder {
-    typealias OutboundIn = MemcacheRequest
+public struct MemcacheRequestEncoder: MessageToByteEncoder {
+    public typealias OutboundIn = MemcacheRequest
 
-    func encode(data: MemcacheRequest, out: inout ByteBuffer) throws {
+    public init() {}
+
+    public func encode(data: MemcacheRequest, out: inout ByteBuffer) throws {
         switch data {
         case .set(var command):
             precondition(!command.key.isEmpty, "Key must not be empty")
