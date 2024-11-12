@@ -12,12 +12,13 @@
 //
 //===----------------------------------------------------------------------===//
 
+import NIOCore
+
 #if os(Linux)
 import Glibc
 #else
 import Darwin
 #endif
-import NIOCore
 
 extension ByteBuffer {
     /// Write `integer` into this `ByteBuffer` as ASCII digits, without leading zeros, moving the writer index forward appropriately.
@@ -40,7 +41,8 @@ extension ByteBuffer {
     mutating func readIntegerFromASCII<T: FixedWidthInteger>() -> T? {
         var value: T = 0
         while self.readableBytes > 0, let currentByte = self.readInteger(as: UInt8.self),
-              currentByte >= UInt8.zero && currentByte <= UInt8.nine {
+            currentByte >= UInt8.zero && currentByte <= UInt8.nine
+        {
             value = (value * 10) + T(currentByte - UInt8.zero)
         }
         return value > 0 ? value : nil
@@ -58,7 +60,10 @@ extension ByteBuffer {
     ///     - flags: An instance of MemcacheFlags that holds the flags intended to be serialized and written to the ByteBuffer.
     mutating func writeMemcacheFlags(flags: MemcacheFlags) {
         // Ensure that both storageMode and arithmeticMode aren't set at the same time.
-        precondition(!(flags.storageMode != nil && flags.arithmeticMode != nil), "Cannot specify both a storage and arithmetic mode.")
+        precondition(
+            !(flags.storageMode != nil && flags.arithmeticMode != nil),
+            "Cannot specify both a storage and arithmetic mode."
+        )
 
         if let shouldReturnValue = flags.shouldReturnValue, shouldReturnValue {
             self.writeInteger(UInt8.whitespace)

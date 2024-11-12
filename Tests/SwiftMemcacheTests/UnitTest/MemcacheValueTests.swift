@@ -12,9 +12,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-@testable import Memcache
 import NIOCore
 import XCTest
+
+@testable import Memcache
 
 final class MemcacheValueTests: XCTestCase {
     func testMemcacheValueConformance() {

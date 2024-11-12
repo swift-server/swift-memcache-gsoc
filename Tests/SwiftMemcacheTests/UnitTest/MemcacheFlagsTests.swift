@@ -12,8 +12,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-@testable import Memcache
 import XCTest
+
+@testable import Memcache
 
 final class MemcacheFlagsTests: XCTestCase {
     func testVFlag() {

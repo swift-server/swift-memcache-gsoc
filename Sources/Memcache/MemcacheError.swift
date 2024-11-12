@@ -37,7 +37,7 @@ public struct MemcacheError: Error, @unchecked Sendable {
         }
 
         func copy() -> Self {
-            return Self(
+            Self(
                 code: self.code,
                 message: self.message,
                 cause: self.cause,
@@ -111,7 +111,8 @@ extension MemcacheError: CustomStringConvertible {
 extension MemcacheError: CustomDebugStringConvertible {
     public var debugDescription: String {
         if let cause = self.cause {
-            return "\(String(reflecting: self.code)): \(String(reflecting: self.message)) (\(String(reflecting: cause)))"
+            return
+                "\(String(reflecting: self.code)): \(String(reflecting: self.message)) (\(String(reflecting: cause)))"
         } else {
             return "\(String(reflecting: self.code)): \(String(reflecting: self.message))"
         }
@@ -146,7 +147,7 @@ extension MemcacheError {
     ///
     /// - Returns: A multi-line description of the error.
     public func detailedDescription() -> String {
-        return self.detailedDescriptionLines().joined(separator: "\n")
+        self.detailedDescriptionLines().joined(separator: "\n")
     }
 }
 
@@ -229,7 +230,7 @@ extension MemcacheError {
             file: String = #fileID,
             line: Int = #line
         ) -> Self {
-            return SourceLocation(function: function, file: file, line: line)
+            SourceLocation(function: function, file: file, line: line)
         }
     }
 }

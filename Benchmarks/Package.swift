@@ -1,4 +1,4 @@
-// swift-tools-version: 5.7
+// swift-tools-version: 5.9
 //===----------------------------------------------------------------------===//
 //
 // This source file is part of the SwiftCertificates open source project
@@ -18,7 +18,7 @@ import PackageDescription
 let package = Package(
     name: "Benchmarks",
     platforms: [
-        .macOS(.v13),
+        .macOS(.v13)
     ],
     dependencies: [
         .package(name: "swift-memcache-gsoc", path: "../"),
@@ -36,8 +36,8 @@ let package = Package(
             ],
             path: "Benchmarks/MemcacheBenchmarks",
             plugins: [
-                .plugin(name: "BenchmarkPlugin", package: "package-benchmark"),
+                .plugin(name: "BenchmarkPlugin", package: "package-benchmark")
             ]
-        ),
+        )
     ]
 )

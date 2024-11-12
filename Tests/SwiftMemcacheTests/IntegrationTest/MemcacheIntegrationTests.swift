@@ -12,10 +12,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-@testable import Memcache
 import NIOCore
 import NIOPosix
 import XCTest
+
+@testable import Memcache
 
 final class MemcacheIntegrationTest: XCTestCase {
     var channel: ClientBootstrap!
@@ -27,7 +28,9 @@ final class MemcacheIntegrationTest: XCTestCase {
         self.channel = ClientBootstrap(group: self.group)
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelInitializer { channel in
-                return channel.pipeline.addHandlers([MessageToByteHandler(MemcacheRequestEncoder()), ByteToMessageHandler(MemcacheResponseDecoder())])
+                channel.pipeline.addHandlers([
+                    MessageToByteHandler(MemcacheRequestEncoder()), ByteToMessageHandler(MemcacheResponseDecoder()),
+                ])
             }
     }
 
@@ -274,7 +277,11 @@ final class MemcacheIntegrationTest: XCTestCase {
 
             // Get value for key after prepend operation
             let updatedValue: String? = try await memcacheConnection.get("greet")
-            XCTAssertEqual(updatedValue, prependValue + initialValue, "Received value should be the same as the concatenation of prependValue and initialValue")
+            XCTAssertEqual(
+                updatedValue,
+                prependValue + initialValue,
+                "Received value should be the same as the concatenation of prependValue and initialValue"
+            )
 
             group.cancelAll()
         }
@@ -300,7 +307,11 @@ final class MemcacheIntegrationTest: XCTestCase {
 
             // Get value for key after append operation
             let updatedValue: String? = try await memcacheConnection.get("greet")
-            XCTAssertEqual(updatedValue, initialValue + appendValue, "Received value should be the same as the concatenation of initialValue and appendValue")
+            XCTAssertEqual(
+                updatedValue,
+                initialValue + appendValue,
+                "Received value should be the same as the concatenation of initialValue and appendValue"
+            )
 
             group.cancelAll()
         }

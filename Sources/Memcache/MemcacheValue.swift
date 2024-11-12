@@ -40,7 +40,7 @@ extension MemcacheValue where Self: FixedWidthInteger {
     ///
     /// - Parameter buffer: The ByteBuffer from which the value should be read.
     public static func readFromBuffer(_ buffer: inout ByteBuffer) -> Self? {
-        return buffer.readIntegerFromASCII()
+        buffer.readIntegerFromASCII()
     }
 }
 
@@ -57,7 +57,7 @@ extension MemcacheValue where Self: StringProtocol {
     ///
     /// - Parameter buffer: The ByteBuffer from which the value should be read.
     public static func readFromBuffer(_ buffer: inout ByteBuffer) -> Self? {
-        return buffer.readString(length: buffer.readableBytes) as? Self
+        buffer.readString(length: buffer.readableBytes) as? Self
     }
 }
 

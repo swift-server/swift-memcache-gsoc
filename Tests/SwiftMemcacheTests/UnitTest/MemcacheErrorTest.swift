@@ -12,8 +12,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-@testable import Memcache
 import XCTest
+
+@testable import Memcache
 
 final class MemcacheErrorTests: XCTestCase {
     func testInitialization() {
@@ -31,7 +32,12 @@ final class MemcacheErrorTests: XCTestCase {
     func testCustomStringConvertible() {
         let location = MemcacheError.SourceLocation.here()
         let causeError = MemcacheError(code: .protocolError, message: "No response", cause: nil, location: location)
-        let mainError = MemcacheError(code: .connectionShutdown, message: "Connection lost", cause: causeError, location: location)
+        let mainError = MemcacheError(
+            code: .connectionShutdown,
+            message: "Connection lost",
+            cause: causeError,
+            location: location
+        )
 
         let description = mainError.description
 
@@ -53,7 +59,12 @@ final class MemcacheErrorTests: XCTestCase {
     func testDetailedDescription() {
         let location = MemcacheError.SourceLocation.here()
         let causeError = MemcacheError(code: .protocolError, message: "No response", cause: nil, location: location)
-        let mainError = MemcacheError(code: .connectionShutdown, message: "Connection lost", cause: causeError, location: location)
+        let mainError = MemcacheError(
+            code: .connectionShutdown,
+            message: "Connection lost",
+            cause: causeError,
+            location: location
+        )
 
         let detailedDesc = mainError.detailedDescription()
 
