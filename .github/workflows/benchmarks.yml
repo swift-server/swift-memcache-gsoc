@@ -83,4 +83,4 @@ jobs:
       image: ${{ matrix.swift.image }}
     services:
       memcached:
-        image: memcached:latest
+        image: memcached:1.6.22
