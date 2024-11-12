@@ -12,10 +12,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-@testable import Memcache
 import NIOCore
 import NIOEmbedded
 import XCTest
+
+@testable import Memcache
 
 final class MemcacheResponseDecoderTests: XCTestCase {
     var decoder: MemcacheResponseDecoder!
@@ -155,7 +156,10 @@ final class MemcacheResponseDecoderTests: XCTestCase {
         // VA 2
         var firstPartBuffer = buffer.getSlice(at: buffer.readerIndex, length: splitIndex)!
         // \r\nhi\r\n
-        var secondPartBuffer = buffer.getSlice(at: buffer.readerIndex + splitIndex, length: buffer.readableBytes - splitIndex)!
+        var secondPartBuffer = buffer.getSlice(
+            at: buffer.readerIndex + splitIndex,
+            length: buffer.readableBytes - splitIndex
+        )!
 
         // Try to decode the first part, which should return .waitForMoreBytes
         switch try self.decoder.next(buffer: &firstPartBuffer) {

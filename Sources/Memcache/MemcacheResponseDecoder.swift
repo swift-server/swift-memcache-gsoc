@@ -109,8 +109,10 @@ struct MemcacheResponseDecoder: NIOSingleStepByteToMessageDecoder {
     mutating func next(buffer: inout ByteBuffer) throws -> NextDecodeAction {
         // Check if the buffer contains "\r\n"
         let bytesView = buffer.readableBytesView
-        guard let crIndex = bytesView.firstIndex(of: UInt8.carriageReturn), bytesView.index(after: crIndex) < bytesView.endIndex,
-              bytesView[bytesView.index(after: crIndex)] == UInt8.newline else {
+        guard let crIndex = bytesView.firstIndex(of: UInt8.carriageReturn),
+            bytesView.index(after: crIndex) < bytesView.endIndex,
+            bytesView[bytesView.index(after: crIndex)] == UInt8.newline
+        else {
             return .waitForMoreBytes
         }
         switch self.nextStep {
@@ -130,7 +132,9 @@ struct MemcacheResponseDecoder: NIOSingleStepByteToMessageDecoder {
                     return .waitForMoreBytes
                 }
 
-                if let currentByte = buffer.getInteger(at: buffer.readerIndex, as: UInt8.self), currentByte == UInt8.whitespace {
+                if let currentByte = buffer.getInteger(at: buffer.readerIndex, as: UInt8.self),
+                    currentByte == UInt8.whitespace
+                {
                     buffer.moveReaderIndex(forwardBy: 1)
                 }
 
@@ -152,7 +156,9 @@ struct MemcacheResponseDecoder: NIOSingleStepByteToMessageDecoder {
                 return .continueDecodeLoop
             }
 
-            if let currentByte = buffer.getInteger(at: buffer.readerIndex, as: UInt8.self), currentByte == UInt8.whitespace {
+            if let currentByte = buffer.getInteger(at: buffer.readerIndex, as: UInt8.self),
+                currentByte == UInt8.whitespace
+            {
                 buffer.moveReaderIndex(forwardBy: 1)
             }
 
@@ -162,7 +168,12 @@ struct MemcacheResponseDecoder: NIOSingleStepByteToMessageDecoder {
                 self.nextStep = .decodeValue(returnCode, dataLength!, flags)
                 return .continueDecodeLoop
             } else {
-                let response = MemcacheResponse(returnCode: returnCode, dataLength: dataLength, flags: flags, value: nil)
+                let response = MemcacheResponse(
+                    returnCode: returnCode,
+                    dataLength: dataLength,
+                    flags: flags,
+                    value: nil
+                )
                 self.nextStep = .returnCode
                 return .returnDecodedResponse(response)
             }
@@ -177,10 +188,11 @@ struct MemcacheResponseDecoder: NIOSingleStepByteToMessageDecoder {
             }
 
             guard buffer.readableBytes >= 2,
-                  let nextByte = buffer.readInteger(as: UInt8.self),
-                  nextByte == UInt8.carriageReturn,
-                  let nextNextByte = buffer.readInteger(as: UInt8.self),
-                  nextNextByte == UInt8.newline else {
+                let nextByte = buffer.readInteger(as: UInt8.self),
+                nextByte == UInt8.carriageReturn,
+                let nextNextByte = buffer.readInteger(as: UInt8.self),
+                nextNextByte == UInt8.newline
+            else {
                 preconditionFailure("Expected to find CRLF at end of response")
             }
 

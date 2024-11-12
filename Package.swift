@@ -1,4 +1,4 @@
-// swift-tools-version: 5.7
+// swift-tools-version: 5.9
 //===----------------------------------------------------------------------===//
 //
 // This source file is part of the swift-memcache-gsoc open source project
@@ -27,10 +27,10 @@ let package = Package(
         .library(
             name: "Memcache",
             targets: ["Memcache"]
-        ),
+        )
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-nio.git", from: "2.56.0"),
+        .package(url: "https://github.com/apple/swift-nio.git", from: "2.76.1"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
         .package(url: "https://github.com/swift-server/swift-service-lifecycle.git", from: "2.0.0"),
     ],
@@ -52,7 +52,7 @@ let package = Package(
         .executableTarget(
             name: "MemcacheExample",
             dependencies: [
-                .target(name: "Memcache"),
+                .target(name: "Memcache")
             ]
         ),
     ]

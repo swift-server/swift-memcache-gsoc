@@ -21,7 +21,7 @@ private let eventLoopGroup = MultiThreadedEventLoopGroup.singleton.next()
 
 let benchmarks = {
     let defaultMetrics: [BenchmarkMetric] = [
-        .mallocCountTotal,
+        .mallocCountTotal
     ]
 
     Benchmark(
@@ -41,7 +41,10 @@ let benchmarks = {
             timeUnits: .milliseconds
         )
     ) { benchmark in
-        try await runSetWithTTLRequest(iterations: benchmark.scaledIterations.upperBound, eventLoopGroup: eventLoopGroup)
+        try await runSetWithTTLRequest(
+            iterations: benchmark.scaledIterations.upperBound,
+            eventLoopGroup: eventLoopGroup
+        )
     }
     Benchmark(
         "Delete Request",

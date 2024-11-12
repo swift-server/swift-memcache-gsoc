@@ -12,9 +12,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-@testable import Memcache
 import NIOCore
 import XCTest
+
+@testable import Memcache
 
 final class MemcacheRequestEncoderTests: XCTestCase {
     var encoder: MemcacheRequestEncoder!
@@ -120,7 +121,11 @@ final class MemcacheRequestEncoderTests: XCTestCase {
         // Extract the encoded Time-To-Live
         let encodedString = outBuffer.getString(at: 0, length: outBuffer.readableBytes)!
         let regex = try! NSRegularExpression(pattern: "T(\\d+)", options: .caseInsensitive)
-        let match = regex.firstMatch(in: encodedString, options: [], range: NSRange(location: 0, length: encodedString.utf16.count))
+        let match = regex.firstMatch(
+            in: encodedString,
+            options: [],
+            range: NSRange(location: 0, length: encodedString.utf16.count)
+        )
         let encodedTTLRange = Range(match!.range(at: 1), in: encodedString)!
         let encodedTTL = Int32(encodedString[encodedTTLRange])!
 

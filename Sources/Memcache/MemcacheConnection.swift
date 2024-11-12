@@ -11,9 +11,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
-@_spi(AsyncChannel)
-
-import NIOCore
+@_spi(AsyncChannel) import NIOCore
 import NIOPosix
 import ServiceLifecycle
 
@@ -92,7 +90,7 @@ public actor MemcacheConnection: Service {
         let channel = try await ClientBootstrap(group: eventLoopGroup)
             .connect(host: self.host, port: self.port)
             .flatMap { channel in
-                return channel.eventLoop.makeCompletedFuture {
+                channel.eventLoop.makeCompletedFuture {
                     try channel.pipeline.syncOperations.addHandler(MessageToByteHandler(MemcacheRequestEncoder()))
                     try channel.pipeline.syncOperations.addHandler(ByteToMessageHandler(MemcacheResponseDecoder()))
                     return try NIOAsyncChannel<MemcacheResponse, MemcacheRequest>(synchronouslyWrapping: channel)
@@ -106,12 +104,12 @@ public actor MemcacheConnection: Service {
             requestContinuation: continuation
         )
 
-        var iterator = channel.inboundStream.makeAsyncIterator()
+        var iterator = channel.inbound.makeAsyncIterator()
         switch self.state {
         case .running(_, let channel, let requestStream, let requestContinuation):
             for await (request, continuation) in requestStream {
                 do {
-                    try await channel.outboundWriter.write(request)
+                    try await channel.outbound.write(request)
                     let responseBuffer = try await iterator.next()
 
                     if let response = responseBuffer {
@@ -119,24 +117,29 @@ public actor MemcacheConnection: Service {
                     } else {
                         self.state = .finished
                         requestContinuation.finish()
-                        continuation.resume(throwing: MemcacheError(
-                            code: .connectionShutdown,
-                            message: "The connection to the Memcache server was unexpectedly closed.",
-                            cause: nil,
-                            location: .here()
-                        ))
+                        continuation.resume(
+                            throwing: MemcacheError(
+                                code: .connectionShutdown,
+                                message: "The connection to the Memcache server was unexpectedly closed.",
+                                cause: nil,
+                                location: .here()
+                            )
+                        )
                     }
                 } catch {
                     switch self.state {
                     case .running:
                         self.state = .finished
                         requestContinuation.finish()
-                        continuation.resume(throwing: MemcacheError(
-                            code: .connectionShutdown,
-                            message: "The connection to the Memcache server has shut down while processing a request.",
-                            cause: error,
-                            location: .here()
-                        ))
+                        continuation.resume(
+                            throwing: MemcacheError(
+                                code: .connectionShutdown,
+                                message:
+                                    "The connection to the Memcache server has shut down while processing a request.",
+                                cause: error,
+                                location: .here()
+                            )
+                        )
                     case .initial, .finished:
                         break
                     }
@@ -152,19 +155,21 @@ public actor MemcacheConnection: Service {
     private func sendRequest(_ request: MemcacheRequest) async throws -> MemcacheResponse {
         switch self.state {
         case .initial(_, _, _, let requestContinuation),
-             .running(_, _, _, let requestContinuation):
+            .running(_, _, _, let requestContinuation):
 
             return try await withCheckedThrowingContinuation { continuation in
                 switch requestContinuation.yield((request, continuation)) {
                 case .enqueued:
                     break
                 case .dropped, .terminated:
-                    continuation.resume(throwing: MemcacheError(
-                        code: .connectionShutdown,
-                        message: "Unable to enqueue request due to the connection being shutdown.",
-                        cause: nil,
-                        location: .here()
-                    ))
+                    continuation.resume(
+                        throwing: MemcacheError(
+                            code: .connectionShutdown,
+                            message: "Unable to enqueue request due to the connection being shutdown.",
+                            cause: nil,
+                            location: .here()
+                        )
+                    )
                 default:
                     break
                 }
@@ -190,7 +195,7 @@ public actor MemcacheConnection: Service {
     private func getBufferAllocator() throws -> ByteBufferAllocator {
         switch self.state {
         case .initial(_, let bufferAllocator, _, _),
-             .running(let bufferAllocator, _, _, _):
+            .running(let bufferAllocator, _, _, _):
             return bufferAllocator
         case .finished:
             throw MemcacheError(
@@ -264,7 +269,7 @@ public actor MemcacheConnection: Service {
     public func set(_ key: String, value: some MemcacheValue, timeToLive: TimeToLive = .indefinitely) async throws {
         switch self.state {
         case .initial(_, let bufferAllocator, _, _),
-             .running(let bufferAllocator, _, _, _):
+            .running(let bufferAllocator, _, _, _):
 
             var buffer = bufferAllocator.buffer(capacity: 0)
             value.writeToBuffer(&buffer)

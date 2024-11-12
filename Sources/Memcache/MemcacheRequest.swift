@@ -13,6 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 import NIOCore
+
 enum MemcacheRequest: Sendable {
     struct SetCommand: Sendable {
         let key: String
