@@ -187,7 +187,7 @@ extension MemcacheError {
             self.code = code
         }
 
-        /// The ``MemcacheConection`` is already shutdown.
+        /// The ``MemcacheConnection`` is already shutdown.
         public static var connectionShutdown: Self {
             Self(.connectionShutdown)
         }

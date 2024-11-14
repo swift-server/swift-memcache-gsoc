@@ -211,9 +211,12 @@ public actor MemcacheConnection: Service {
 
     /// Fetch the value for a key from the Memcache server.
     ///
-    /// - Parameter key: The key to fetch the value for.
+    /// - Parameters:
+    ///   - key: The key to fetch the value for.
+    ///   - valueType: The type of the returned `Value`
     /// - Returns: A `Value` containing the fetched value, or `nil` if no value was found.
     /// - Throws: A `MemcacheError` that indicates the failure.
+
     public func get<Value: MemcacheValue>(_ key: String, as valueType: Value.Type = Value.self) async throws -> Value? {
         var flags = MemcacheFlags()
         flags.shouldReturnValue = true
@@ -262,7 +265,7 @@ public actor MemcacheConnection: Service {
     /// - Parameters:
     ///   - key: The key for which the value is to be set.
     ///   - value: The `MemcacheValue` to set for the key.
-    ///   - expiration: An optional `TimeToLive` value specifying the TTL (Time-To-Live) for the key-value pair.
+    ///   - timeToLive: An optional `TimeToLive` value specifying the TTL (Time-To-Live) for the key-value pair.
     ///     If provided, the key-value pair will be removed from the cache after the specified TTL duration has passed.
     ///     If not provided, the key-value pair will persist indefinitely in the cache.
     /// - Throws: A `MemcacheError` that indicates the failure.
