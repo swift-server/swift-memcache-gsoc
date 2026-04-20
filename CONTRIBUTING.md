@@ -66,3 +66,7 @@ We require that your commit messages match our template. The easiest way to do t
 ## How to contribute your work
 
 Please open a pull request at https://github.com/swift-server/swift-memcache-gsoc. Make sure the CI passes, and then wait for code review.
+
+## Automated release process
+
+This repository uses automated releases based on semantic versioning labels. See the [Auto Release Workflow documentation](https://github.com/apple/swift-temporal-sdk/blob/main/.github/workflows/README.md) for details.
